@@ -106,9 +106,9 @@ ReferenceBrain="${HCPPIPEDIR_Templates}/MNI152_T1_0.7mm_brain.nii.gz"
 Reference2mmBrain="${HCPPIPEDIR_Templates}/MNI152_T1_2mm_brain.nii.gz"
 Input_mp2rage="${Input}_mp2rage"
 
-/Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${Input}.nii.gz" -o "${OutputBrainExtractedImage}.nii.gz" -m "${OutputBrainMask}.nii.gz" --no-csf
+/Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${Input}.nii.gz" -o "${OutputBrainExtractedImage}.nii.gz" -m "${OutputBrainMask}.nii.gz" -b 0
 if [ $Modality = T1w ] ; then
-  /Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${Input_mp2rage}.nii.gz" -o "${Input_mp2rage}_bet.nii.gz" -m "${Input_mp2rage}_bet_mask.nii.gz" --no-csf
+  /Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${Input_mp2rage}.nii.gz" -o "${Input_mp2rage}_bet.nii.gz" -m "${Input_mp2rage}_bet_mask.nii.gz" -b 0
   # Register to 2mm reference image (linear then non-linear)
   verbose_echo " ... linear registration to 2mm reference"
   # ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "$Input" -ref "$Reference" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch

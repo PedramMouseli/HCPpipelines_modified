@@ -1,4 +1,4 @@
-This is a modified version of the HCP pipelines. Some of the changes are:
+This is a modified version of the [HCP pipelines][HCPpipelines]. Some of the changes are:
 * The pipeline is modified to work on the BIDS data structure.
 * All the outputs will be saved in a folder named "processed" in the subject's folder.
 * The brain extraction script is modified to use [SynthStrip][synthstrip] (from FreeSurfer version >= 7.3.0) for a better brain extraction and registration to the standard space.
@@ -34,3 +34,4 @@ and click Sign In. For instructions on joining without a Google account: [hcp-us
 [hcp-users Google Group]: https://groups.google.com/u/2/a/humanconnectome.org/g/hcp-users
 [hcp-users-join-wiki]: https://wiki.humanconnectome.org/pages/viewpage.action?pageId=140509193
 [synthstrip]: https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/
+[HCPpipelines]: https://github.com/Washington-University/HCPpipelines

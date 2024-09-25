@@ -1,3 +1,10 @@
+This is a modified version of the HCP pipelines. Some of the changes are:
+* The pipeline is modified to work on the BIDS data structure.
+* All the outputs will be saved in a folder named "processed" in the subject's folder.
+* The brain extraction script is modified to use [SynthStrip][synthstrip] (from FreeSurfer version >= 7.3.0) for a better brain extraction and registration to the standard space.
+* An additional T1w image (INV2 from the MP2RAGE sequence) which has more clear edges is used for calculating the linear and non-linear transformations to the standard space.
+* [TODO] option for toggling the use of the INV2 image.
+
 # HCP Pipelines 
 
 The HCP Pipelines product is a set of tools (primarily, but not exclusively,
@@ -26,3 +33,4 @@ and click Sign In. For instructions on joining without a Google account: [hcp-us
 [wiki]: https://github.com/Washington-University/Pipelines/wiki
 [hcp-users Google Group]: https://groups.google.com/u/2/a/humanconnectome.org/g/hcp-users
 [hcp-users-join-wiki]: https://wiki.humanconnectome.org/pages/viewpage.action?pageId=140509193
+[synthstrip]: https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/

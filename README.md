@@ -3,6 +3,8 @@ This is a modified version of the [HCP pipelines][HCPpipelines]. Some of the cha
 * All the outputs will be saved in a folder named "processed" in the subject's folder.
 * The brain extraction script is modified to use [SynthStrip][synthstrip] (from FreeSurfer version >= 7.3.0) for a better brain extraction and registration to the standard space.
 * An additional T1w image (INV2 from the MP2RAGE sequence) which has more clear edges is used for calculating the linear and non-linear transformations to the standard space.
+* FSL FLIRT and FNIRT were replaced with [ANTs][ants] for the linear and non-linear registration. 
+* ANTs transformations converted to the FSL format using [c3d_affine_tool][c3d_affine] and [Workbench][wb].
 * [TODO] option for toggling the use of the INV2 image.
 
 # HCP Pipelines 
@@ -35,3 +37,6 @@ and click Sign In. For instructions on joining without a Google account: [hcp-us
 [hcp-users-join-wiki]: https://wiki.humanconnectome.org/pages/viewpage.action?pageId=140509193
 [synthstrip]: https://surfer.nmr.mgh.harvard.edu/docs/synthstrip/
 [HCPpipelines]: https://github.com/Washington-University/HCPpipelines
+[ants]: https://github.com/ANTsX/ANTsPy
+[c3d_affine]: https://github.com/pyushkevich/c3d/tree/master
+[wb]: https://www.humanconnectome.org/software/workbench-command/-convert-warpfield

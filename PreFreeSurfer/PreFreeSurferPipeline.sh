@@ -262,6 +262,8 @@ opts_AddMandatory '--avgrdcmethod' 'AvgrdcSTRING' 'avgrdcmethod' "Averaging and 
       equivalent to '${SIEMENS_METHOD_OPT}' (preferred)
       This option value is maintained for backward compatibility."
 
+opts_AddOptional '--AltT1' 'T1wAltInputImages' "T1Alt" "An @ symbol separated list of full paths to alternative T1-weighted  (T1w) structural images for the subject"
+
 opts_AddOptional '--topupconfig' 'TopupConfig' 'file_path' "Configuration file for topup or 'NONE' if not used"
 
 opts_AddOptional '--bfsigma' 'BiasFieldSmoothingSigma' 'value' "Bias Field Smoothing Sigma (optional)"
@@ -350,6 +352,7 @@ check_mode_compliance "${ProcessingMode}" "${Compliance}" "${ComplianceMsg}"
 # Naming Conventions
 T1wImage="T1w"
 T1wFolder="processed/T1w" #Location of T1w images
+T1wAltImage="T1w_mp2rage"
 T2wImage="T2w"
 T2wFolder="processed/T2w" #Location of T2w images
 AtlasSpaceFolder="processed/MNINonLinear"
@@ -365,6 +368,7 @@ log_Msg "AtlasSpaceFolder: $AtlasSpaceFolder"
 
 # Unpack List of Images
 T1wInputImages=`echo ${T1wInputImages} | sed 's/@/ /g'`
+T1wAltInputImages=`echo ${T1wAltInputImages} | sed 's/@/ /g'`
 T2wInputImages=`echo ${T2wInputImages} | sed 's/@/ /g'`
 
 
@@ -424,6 +428,13 @@ if [ "$CustomBrain" = "NONE" ] ; then
   for TXw in ${Modalities} ; do
 
       # set up appropriate input variables
+      # if [ $TXw = AltT1w ] ; then
+      #     TXwInputImages="${T1wAltInputImages}"
+      #     TXwFolder=${T1wFolder}
+      #     TXwImage=${T1wAltImage}
+      #     TXwTemplate=${T1wTemplate}
+      #     TXwTemplate2mm=${T1wTemplate2mm}
+      #     log_Msg "processing Alt image"
       if [ $TXw = T1w ] ; then
           TXwInputImages="${T1wInputImages}"
           TXwFolder=${T1wFolder}
@@ -436,6 +447,7 @@ if [ "$CustomBrain" = "NONE" ] ; then
           TXwImage=${T2wImage}
           TXwTemplate=${T2wTemplate}
           TXwTemplate2mm=${T2wTemplate2mm}
+          log_Msg "processing T2 image"
       fi
       OutputTXwImageSTRING=""
 
@@ -479,7 +491,7 @@ if [ "$CustomBrain" = "NONE" ] ; then
           log_Msg "image: ${Image}"
           ${RUN} ${FSLDIR}/bin/fslreorient2std $Image ${TXwFolder}/${TXwImage}${i}_gdc
           # ${FSLDIR}/bin/fslreorient2std $Image ${TXwFolder}/${TXwImage}${i}_gdc
-          OutputTXwImageSTRING="${OutputTXwImageSTRING}${TXwFolder}/${TXwImage}${i}_gdc "
+          OutputTXwImageSTRING+="${OutputTXwImageSTRING}${TXwFolder}/${TXwImage}${i}_gdc@"
           i=$(($i+1))
         done
 
@@ -492,7 +504,8 @@ if [ "$CustomBrain" = "NONE" ] ; then
         log_Msg "mkdir -p ${TXwFolder}/Average${TXw}Images"
         mkdir -p ${TXwFolder}/Average${TXw}Images
         log_Msg "PERFORMING SIMPLE AVERAGING"
-        ${RUN} ${HCPPIPEDIR_PreFS}/AnatomicalAverage.sh -o ${TXwFolder}/${TXwImage} -s ${TXwTemplate} -m ${TemplateMask} -n -w ${TXwFolder}/Average${TXw}Images --noclean -v -b $BrainSize $OutputTXwImageSTRING
+        # ${RUN} ${HCPPIPEDIR_PreFS}/AnatomicalAverage.sh -o ${TXwFolder}/${TXwImage} -s ${TXwTemplate} -m ${TemplateMask} -n -w ${TXwFolder}/Average${TXw}Images --noclean -v -b $BrainSize $OutputTXwImageSTRING
+        ${RUN} ${HCPPIPEDIR_PreFS}/AnatomicalAverage.sh --output ${TXwFolder}/${TXwImage} --standard-image ${TXwTemplate} --standard-mask ${TemplateMask} --working-dir ${TXwFolder}/Average${TXw}Images --brain-size $BrainSize --image-list $OutputTXwImageSTRING
       else
         log_Msg "Not Averaging ${TXw} Images"
         log_Msg "ONLY ONE IMAGE FOUND: COPYING"
@@ -502,7 +515,9 @@ if [ "$CustomBrain" = "NONE" ] ; then
           cp "${StudyFolder}/${Subject}/anat/${Subject}_T1w_mp2rage.nii.gz" "${TXwFolder}/${TXwImage}_mp2rage.nii.gz"
         fi
       fi
-
+      # if [ $TXw = T1wAlt ] ; then
+      #   continue
+      # fi
       # ACPC align T1w or T2w image to specified MNI Template to create native volume space
       log_Msg "Aligning ${TXw} image to ${TXwTemplate} to create native volume space"
       log_Msg "mkdir -p ${TXwFolder}/ACPCAlignment"

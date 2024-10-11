@@ -231,6 +231,17 @@ main()
 		done
 		echo "Found ${numT2ws} T2w Images for subject ${Subject}"
 
+		# Detect Number of alternative T1w Images and build list of full paths to
+		# T1w images
+		# T1wAltInputImages=""
+		# numT1wAlts=0
+		# for t1wAltImg in "${StudyFolder}/${Subject}/anat/${Subject}_T1w_mp2rage"*; do
+		# 	imagebase=$(basename "$t1wAltImg")
+		# 	T1wAltInputImages+="${StudyFolder}/${Subject}/anat/$imagebase@"
+		# 	numT1wAlts=$((numT1wAlts + 1))
+		# done
+		# echo "Found ${numT1wAlts} alternative T1w Images for subject ${Subject}"
+
 		# Readout Distortion Correction:
 		#
 		#   Currently supported Averaging and readout distortion correction
@@ -497,6 +508,7 @@ main()
 			--path="$StudyFolder" \
 			--subject="$Subject" \
 			--t1="$T1wInputImages" \
+			--AltT1="$T1wAltInputImages" \
 			--t2="$T2wInputImages" \
 			--t1template="$T1wTemplate" \
 			--t1templatebrain="$T1wTemplateBrain" \

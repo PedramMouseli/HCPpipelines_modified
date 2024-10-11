@@ -106,13 +106,19 @@ echo " " >> $WD/xfms/log.txt
 # Linear then non-linear registration to MNI
 verbose_echo " --> Linear then non-linear registration to MNI"
 # ${FSLDIR}/bin/flirt -interp spline -dof 12 -in ${T1wRestoreBrain} -ref ${ReferenceBrain} -omat ${WD}/xfms/acpc2MNILinear.mat -out ${WD}/xfms/${T1wRestoreBrainBasename}_to_MNILinear
-${FSLDIR}/bin/flirt -interp spline -dof 12 -in "${T1wImageMp2rage}_bet.nii.gz" -ref ${ReferenceBrain} -omat ${WD}/xfms/acpc2MNILinear.mat -out ${WD}/xfms/${T1wRestoreBrainBasename}_to_MNILinear
-# apply linear xfm to the main T1
-${FSLDIR}/bin/flirt -in "${T1wRestoreBrain}.nii.gz" -applyxfm -init ${WD}/xfms/acpc2MNILinear.mat -out ${WD}/xfms/${T1wRestoreBrainBasename}_to_MNILinear -paddingsize 0.0 -interp spline -ref ${ReferenceBrain}
+# ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "${T1wImageMp2rage}_bet.nii.gz" -ref ${ReferenceBrain} -omat ${WD}/xfms/acpc2MNILinear.mat -out ${WD}/xfms/${T1wRestoreBrainBasename}_to_MNILinear
+
+python "${HCPPIPEDIR}/ANTs/antsReg.py" "${T1wImageMp2rage}.nii.gz" "$Reference" "${WD}/xfms/ants_"
+# Convert ANTs warp to FSL
+c3d_affine_tool -ref "$Reference" -src "${T1wImageMp2rage}.nii.gz" -itk "${WD}/xfms/ants_0GenericAffine.mat" -ras2fsl -o ${WD}/xfms/acpc2MNILinear.mat
+$CARET7DIR/wb_command -convert-warpfield -from-itk "${WD}/xfms/ants_1Warp.nii.gz" -to-fnirt "${WD}/xfms/ants_fnirt.nii.gz" "$Reference"
+${FSLDIR}/bin/convertwarp --ref="$Reference2mm" --premat=${WD}/xfms/acpc2MNILinear.mat --warp1="${WD}/xfms/ants_fnirt.nii.gz" --out=${OutputTransform}
 
 # ${FSLDIR}/bin/fnirt --in=${T1wRestore} --ref=${Reference2mm} --aff=${WD}/xfms/acpc2MNILinear.mat --refmask=${Reference2mmMask} --fout=${OutputTransform} --jout=${WD}/xfms/NonlinearRegJacobians.nii.gz --refout=${WD}/xfms/IntensityModulatedT1.nii.gz --iout=${WD}/xfms/2mmReg.nii.gz --logout=${WD}/xfms/NonlinearReg.txt --intout=${WD}/xfms/NonlinearIntensities.nii.gz --cout=${WD}/xfms/NonlinearReg.nii.gz --config=${FNIRTConfig}
-${FSLDIR}/bin/fnirt --in=${T1wImageMp2rage} --ref=${Reference2mm} --aff=${WD}/xfms/acpc2MNILinear.mat --refmask=${Reference2mmMask} --fout=${OutputTransform} --jout=${WD}/xfms/NonlinearRegJacobians.nii.gz --refout=${WD}/xfms/IntensityModulatedT1.nii.gz --iout=${WD}/xfms/2mmReg.nii.gz --logout=${WD}/xfms/NonlinearReg.txt --intout=${WD}/xfms/NonlinearIntensities.nii.gz --cout=${WD}/xfms/NonlinearReg.nii.gz --config=${FNIRTConfig}
+# ${FSLDIR}/bin/fnirt --in=${T1wImageMp2rage} --ref=${Reference2mm} --aff=${WD}/xfms/acpc2MNILinear.mat --refmask=${Reference2mmMask} --fout=${OutputTransform} --jout=${WD}/xfms/NonlinearRegJacobians.nii.gz --refout=${WD}/xfms/IntensityModulatedT1.nii.gz --iout=${WD}/xfms/2mmReg.nii.gz --logout=${WD}/xfms/NonlinearReg.txt --intout=${WD}/xfms/NonlinearIntensities.nii.gz --cout=${WD}/xfms/NonlinearReg.nii.gz --config=${FNIRTConfig}
 
+# apply linear xfm to the main T1
+${FSLDIR}/bin/flirt -in "${T1wRestoreBrain}.nii.gz" -applyxfm -init ${WD}/xfms/acpc2MNILinear.mat -out ${WD}/xfms/${T1wRestoreBrainBasename}_to_MNILinear -paddingsize 0.0 -interp spline -ref ${ReferenceBrain}
 # Input and reference spaces are the same, using 2mm reference to save time
 verbose_echo " --> Computing 2mm warp"
 ${FSLDIR}/bin/invwarp -w ${OutputTransform} -o ${OutputInvTransform} -r ${Reference2mm}

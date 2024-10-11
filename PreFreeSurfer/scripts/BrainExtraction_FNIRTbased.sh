@@ -108,34 +108,47 @@ Input_mp2rage="${Input}_mp2rage"
 
 /Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${Input}.nii.gz" -o "${OutputBrainExtractedImage}.nii.gz" -m "${OutputBrainMask}.nii.gz" --no-csf
 if [ $Modality = T1w ] ; then
-  /Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${Input_mp2rage}.nii.gz" -o "${Input_mp2rage}_bet.nii.gz" -m "${Input_mp2rage}_bet_mask.nii.gz" -b 1
+  # /Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${Input_mp2rage}.nii.gz" -o "${Input_mp2rage}_bet.nii.gz" -m "${Input_mp2rage}_bet_mask.nii.gz" -b 0
   # Register to 2mm reference image (linear then non-linear)
-  verbose_echo " ... linear registration to 2mm reference"
+  # verbose_echo " ... linear registration to 2mm reference"
   # ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "$Input" -ref "$Reference" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch
-  ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "${Input_mp2rage}_bet.nii.gz" -ref "$ReferenceBrain" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch
+  # ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "${Input_mp2rage}_bet.nii.gz" -ref "$ReferenceBrain" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch
 
   verbose_echo " ... non-linear registration to 2mm reference"
   # ${FSLDIR}/bin/fnirt --in="$Input" --ref="$Reference2mm" --aff="$WD"/roughlin.mat --refmask="$Reference2mmMask" --fout="$WD"/str2standard.nii.gz --jout="$WD"/NonlinearRegJacobians.nii.gz --refout="$WD"/IntensityModulatedT1.nii.gz --iout="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
-  ${FSLDIR}/bin/fnirt --in="$Input_mp2rage" --ref="$Reference2mm" --aff="$WD"/roughlin.mat --refmask="$Reference2mmMask" --fout="$WD"/str2standard.nii.gz --jout="$WD"/NonlinearRegJacobians.nii.gz --refout="$WD"/IntensityModulatedT1.nii.gz --iout="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
+  # ${FSLDIR}/bin/fnirt --in="$Input_mp2rage" --ref="$Reference2mm" --aff="$WD"/roughlin.mat --refmask="$Reference2mmMask" --fout="$WD"/str2standard.nii.gz --jout="$WD"/NonlinearRegJacobians.nii.gz --refout="$WD"/IntensityModulatedT1.nii.gz --iout="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
+  # run ANTs registration in python
+  python "${HCPPIPEDIR}/ANTs/antsReg.py" "${Input_mp2rage}.nii.gz" "$Reference" "${WD}/${BaseName}_"
+  # Convert ANTs warp to FSL
+  c3d_affine_tool -ref "$Reference" -src "${Input_mp2rage}.nii.gz" -itk "${WD}/${BaseName}_0GenericAffine.mat" -ras2fsl -o "$WD"/roughlin.mat
+  $CARET7DIR/wb_command -convert-warpfield -from-itk "${WD}/${BaseName}_1Warp.nii.gz" -to-fnirt "${WD}/${BaseName}_fnirt.nii.gz" "$Reference"
+  ${FSLDIR}/bin/convertwarp --ref="$Reference2mm" --premat="$WD"/roughlin.mat --warp1="${WD}/${BaseName}_fnirt.nii.gz" --out="$WD"/str2standard.nii.gz
 
   # Overwrite the image output from FNIRT with a spline interpolated highres version
   verbose_echo " ... creating spline interpolated hires version"
   ${FSLDIR}/bin/applywarp --rel --interp=spline --in="$Input" --ref="$Reference" -w "$WD"/str2standard.nii.gz --out="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz
   # Overwrite the linear registeration with the original image
+  # ${FSLDIR}/bin/flirt -in "${Input}.nii.gz" -applyxfm -init "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -paddingsize 0.0 -interp spline -ref "$ReferenceBrain"
   ${FSLDIR}/bin/flirt -in "${Input}.nii.gz" -applyxfm -init "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -paddingsize 0.0 -interp spline -ref "$ReferenceBrain"
 
 else
   verbose_echo " ... linear registration to 2mm reference"
   # ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "$Input" -ref "$Reference" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch
-  ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "$OutputBrainExtractedImage" -ref "$Reference" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch
-
-  ${FSLDIR}/bin/flirt -in "${Input}.nii.gz" -applyxfm -init "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -paddingsize 0.0 -interp spline -ref "$ReferenceBrain"
+  # ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "$OutputBrainExtractedImage" -ref "$Reference" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch
 
   verbose_echo " ... non-linear registration to 2mm reference"
-  ${FSLDIR}/bin/fnirt --in="$Input" --ref="$Reference2mm" --aff="$WD"/roughlin.mat --refmask="$Reference2mmMask" --fout="$WD"/str2standard.nii.gz --jout="$WD"/NonlinearRegJacobians.nii.gz --refout="$WD"/IntensityModulatedT1.nii.gz --iout="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
+  # ${FSLDIR}/bin/fnirt --in="$Input" --ref="$Reference2mm" --aff="$WD"/roughlin.mat --refmask="$Reference2mmMask" --fout="$WD"/str2standard.nii.gz --jout="$WD"/NonlinearRegJacobians.nii.gz --refout="$WD"/IntensityModulatedT1.nii.gz --iout="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
+  # run ANTs registration in python
+  python "${HCPPIPEDIR}/ANTs/antsReg.py" "${Input}.nii.gz" "$Reference" "${WD}/${BaseName}_"
+  # Convert ANTs warp to FSL
+  c3d_affine_tool -ref "$Reference" -src "${Input}.nii.gz" -itk "${WD}/${BaseName}_0GenericAffine.mat" -ras2fsl -o "$WD"/roughlin.mat
+  $CARET7DIR/wb_command -convert-warpfield -from-itk "${WD}/${BaseName}_1Warp.nii.gz" -to-fnirt "${WD}/${BaseName}_fnirt.nii.gz" "$Reference"
+  ${FSLDIR}/bin/convertwarp --ref="$Reference2mm" --premat="$WD"/roughlin.mat --warp1="${WD}/${BaseName}_fnirt.nii.gz" --out="$WD"/str2standard.nii.gz
 
   verbose_echo " ... creating spline interpolated hires version"
   ${FSLDIR}/bin/applywarp --rel --interp=spline --in="$Input" --ref="$Reference" -w "$WD"/str2standard.nii.gz --out="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz
+
+  ${FSLDIR}/bin/flirt -in "${Input}.nii.gz" -applyxfm -init "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -paddingsize 0.0 -interp spline -ref "$ReferenceBrain"
 
 fi
 

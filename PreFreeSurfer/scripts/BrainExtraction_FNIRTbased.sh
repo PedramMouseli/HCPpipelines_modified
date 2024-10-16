@@ -122,10 +122,16 @@ if [ $Modality = T1w ] ; then
   # Convert ANTs warp to FSL
   c3d_affine_tool -ref "$Reference" -src "${Input_mp2rage}.nii.gz" -itk "${WD}/${BaseName}_0GenericAffine.mat" -ras2fsl -o "$WD"/roughlin.mat
   $CARET7DIR/wb_command -convert-warpfield -from-itk "${WD}/${BaseName}_1Warp.nii.gz" -to-fnirt "${WD}/${BaseName}_fnirt.nii.gz" "$Reference"
-  ${FSLDIR}/bin/convertwarp --ref="$Reference2mm" --premat="$WD"/roughlin.mat --warp1="${WD}/${BaseName}_fnirt.nii.gz" --out="$WD"/str2standard.nii.gz
+  ${FSLDIR}/bin/convertwarp --relout --ref="$Reference2mm" --premat="$WD"/roughlin.mat --warp1="${WD}/${BaseName}_fnirt.nii.gz" --out="$WD"/str2standard.nii.gz
+  # Create the jacobian matrix from warp
+  # First converting warp field to fnirt coefs equivalent to the fnirt's --cout
+  fnirtfileutils --in="$WD"/str2standard.nii.gz --ref="$Reference2mm" --out="$WD"/NonlinearReg.nii.gz --outformat=spline
+  # Creat jacobian from the coefs
+  fnirtfileutils --in="$WD"/NonlinearReg.nii.gz --ref="$Reference2mm" --jac="$WD"/NonlinearRegJacobians.nii.gz
 
   # Overwrite the image output from FNIRT with a spline interpolated highres version
   verbose_echo " ... creating spline interpolated hires version"
+  # ${FSLDIR}/bin/applywarp --rel --interp=spline --in="$Input" --ref="$Reference" -w "$WD"/str2standard.nii.gz --out="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz
   ${FSLDIR}/bin/applywarp --rel --interp=spline --in="$Input" --ref="$Reference" -w "$WD"/str2standard.nii.gz --out="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz
   # Overwrite the linear registeration with the original image
   # ${FSLDIR}/bin/flirt -in "${Input}.nii.gz" -applyxfm -init "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -paddingsize 0.0 -interp spline -ref "$ReferenceBrain"
@@ -143,7 +149,12 @@ else
   # Convert ANTs warp to FSL
   c3d_affine_tool -ref "$Reference" -src "${Input}.nii.gz" -itk "${WD}/${BaseName}_0GenericAffine.mat" -ras2fsl -o "$WD"/roughlin.mat
   $CARET7DIR/wb_command -convert-warpfield -from-itk "${WD}/${BaseName}_1Warp.nii.gz" -to-fnirt "${WD}/${BaseName}_fnirt.nii.gz" "$Reference"
-  ${FSLDIR}/bin/convertwarp --ref="$Reference2mm" --premat="$WD"/roughlin.mat --warp1="${WD}/${BaseName}_fnirt.nii.gz" --out="$WD"/str2standard.nii.gz
+  ${FSLDIR}/bin/convertwarp --relout --ref="$Reference2mm" --premat="$WD"/roughlin.mat --warp1="${WD}/${BaseName}_fnirt.nii.gz" --out="$WD"/str2standard.nii.gz
+  # Create the jacobian matrix from warp
+  # First converting warp field to fnirt coefs equivalent to the fnirt's --cout
+  fnirtfileutils --in="$WD"/str2standard.nii.gz --ref="$Reference2mm" --out="$WD"/NonlinearReg.nii.gz --outformat=spline
+  # Creat jacobian from the coefs
+  fnirtfileutils --in="$WD"/NonlinearReg.nii.gz --ref="$Reference2mm" --jac="$WD"/NonlinearRegJacobians.nii.gz
 
   verbose_echo " ... creating spline interpolated hires version"
   ${FSLDIR}/bin/applywarp --rel --interp=spline --in="$Input" --ref="$Reference" -w "$WD"/str2standard.nii.gz --out="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz

@@ -43,4 +43,9 @@ echo "Running the Generic fMRI Surface Processing script"
 "$ScriptsFolder"/GenericfMRISurfaceProcessingPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
 
 echo "$(timestamp)"
+echo "Running the MELODIC script"
+
+"$ScriptsFolder"/IcaFixMelodicOnlyProcessingBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
+
+echo "$(timestamp)"
 echo "Done!"

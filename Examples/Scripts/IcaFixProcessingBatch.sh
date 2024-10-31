@@ -3,7 +3,7 @@
 # Global default values
 DEFAULT_STUDY_FOLDER="${HOME}/data/Pipelines_ExampleData"
 DEFAULT_SUBJECT_LIST="100307 100610"
-DEFAULT_ENVIRONMENT_SCRIPT="${HOME}/projects/Pipelines/Examples/Scripts/SetUpHCPPipeline.sh"
+DEFAULT_ENVIRONMENT_SCRIPT="${HOME}/Documents/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts/SetUpHCPPipeline.sh"
 DEFAULT_RUN_LOCAL="FALSE"
 #DEFAULT_FIXDIR="${HOME}/tools/fix1.06"  ##OPTIONAL: If not set will use $FSL_FIXDIR specified in EnvironmentScript
 
@@ -12,7 +12,7 @@ DEFAULT_RUN_LOCAL="FALSE"
 #	Get the command line options for this script
 #
 # Global Output Variables
-#	${StudyFolder}			- Path to folder containing all subjects data in subdirectories named 
+#	${StudyFolder}			- Path to folder containing all subjects data in subdirectories named
 #							  for the subject id
 #	${Subjlist}				- Space delimited list of subject IDs
 #	${EnvironmentScript}	- Script to source to setup pipeline environment
@@ -135,50 +135,78 @@ main() {
 	# set list of fMRI on which to run ICA+FIX, separate MR FIX groups with %, use spaces (or @ like dedrift...) to otherwise separate runs
 	# the MR FIX groups determine what gets concatenated before doing ICA
 	# the groups can be whatever you want, you can make a day 1 group and a day 2 group, or just concatenate everything, etc
-	fMRINames="tfMRI_WM_RL@tfMRI_WM_LR@tfMRI_GAMBLING_RL@tfMRI_GAMBLING_LR@tfMRI_MOTOR_RL@tfMRI_MOTOR_LR%tfMRI_LANGUAGE_RL@tfMRI_LANGUAGE_LR@tfMRI_SOCIAL_RL@tfMRI_SOCIAL_LR@tfMRI_RELATIONAL_RL@tfMRI_RELATIONAL_LR@tfMRI_EMOTION_RL@tfMRI_EMOTION_LR"
+	# fMRINames="clench_run-1@clench_run-2@clench_run-3@clench_run-4%rest%localizer_run-1@localizer_run-2@localizer_run-3%stress_run-1@stress_run-2@stress_run-3@stress_run-4"
 
 	# If you wish to run "multi-run" (concatenated) FIX, specify the names to give the concatenated output files
 	# In this case, all the runs included in ${fMRINames} become the input to multi-run FIX
-	ConcatNames="tfMRI_WM_GAMBLING_MOTOR_RL_LR@tfMRI_LANGUAGE_SOCIAL_RELATIONAL_EMOTION_RL_LR"  ## Use space (or @) to separate concatenation groups
+	# ConcatNames="clench@rest@localizer@stress"  ## Use space (or @) to separate concatenation groups
 	# Otherwise, leave ConcatNames empty (in which case "single-run" FIX is executed serially on each run in ${fMRINames})
 	#ConcatNames=""
+
+	TaskList_general=()
+	TaskList_general+=(clench)
+	TaskList_general+=(rest)
+	TaskList_general+=(localizer)
+	TaskList_general+=(stress)
+
+	runs="run-1 run-2 run-3 run-4"
+
+	# ConcatNames=()
+	# fMRINames=()
+	# for task in "${TaskList_general[@]}" ; do
+	#   if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
+	#     ConcatNames+="${task}@"
+	#     echo "${task} added to the task list"
+	#
+	#     if [ $task == "rest" ]; then
+	#       fMRINames+="${task}"
+	#     fi
+	#
+	#     for run in ${runs} ; do
+	#       if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_${run}"* >/dev/null 2>&1; then
+	#         fMRINames+="${task}_${run}@"
+	#       fi
+	#     done
+	#     fMRINames+="%"
+	#   fi
+	# done
 
 	# set temporal highpass full-width (2*sigma) to use, in seconds, cannot be 0 for single-run FIX
 	# MR FIX also supports 0 for a linear detrend, or "pdX" for a polynomial detrend of order X
 	# e.g., bandpass=pd1 is linear detrend (functionally equivalent to bandpass=0)
 	# bandpass=pd2 is a quadratic detrend
-	bandpass=0
+	bandpass=125 # in seconds, equal to 0.008 Hz for TR=1.5 and 1/(2*f*TR)
 	#bandpass=2000 #for single run FIX, bandpass=2000 was used in HCP preprocessing
 
 	# set whether or not to regress motion parameters (24 regressors)
 	# out of the data as part of FIX (TRUE or FALSE)
 	domot=FALSE
-	
+
 	# set the training data used in multi-run fix mode
 	MRTrainingData=HCP_Style_Single_Multirun_Dedrift.RData
 
 	# set the training data used in single-run fix mode
 	SRTrainingData=HCP_hp2000.RData
-	
+
 	# set FIX threshold (controls sensitivity/specificity tradeoff)
 	FixThreshold=10
-	
+
 	#delete highpass files (note that delete intermediates=TRUE is not recommended for MR+FIX)
 	DeleteIntermediates=FALSE
-	
+
 	#MR FIX config support for non-HCP settings
 	config=""
 	processingmode="HCPStyleData"
 	#uncomment the below two lines for legacy-style data
 	#config="$HCPPIPEDIR"/ICAFIX/config/legacy.conf
 	#processingmode="LegacyStyleData"
-	
+
 	#NOTE: syntax for QUEUE has changed compared to earlier pipeline releases,
 	#DO NOT include "-q " at the beginning
 	#default to no queue, implying run local
 	QUEUE=""
 	#QUEUE="hcp_priority.q"
-	
+
 	if [[ "$RunLocal" == "TRUE" || "$QUEUE" == "" ]]; then
 		queuing_command=("$HCPPIPEDIR"/global/scripts/captureoutput.sh)
 	else
@@ -188,12 +216,33 @@ main() {
 	for Subject in ${Subjlist}; do
 		echo ${Subject}
 
-		ResultsFolder="${StudyFolder}/${Subject}/MNINonLinear/Results"
-		
+		ResultsFolder="${StudyFolder}/${Subject}/processed/MNINonLinear/Results"
+
+		## find the task list
+		ConcatNames=()
+		fMRINames=()
+		for task in "${TaskList_general[@]}" ; do
+		  if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
+		    ConcatNames+="${task}_ICA@"
+		    echo "${task} added to the task list"
+
+		    if [ $task == "rest" ]; then
+		      fMRINames+="${task}"
+		    fi
+
+		    for run in ${runs} ; do
+		      if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_${run}"* >/dev/null 2>&1; then
+		        fMRINames+="${task}_${run}@"
+		      fi
+		    done
+		    fMRINames+="%"
+		  fi
+		done
+
 		if [ -z "${ConcatNames}" ]; then
 			# single-run FIX
 			fMRINamesFlat=$(echo ${fMRINames} | sed 's/[@%]/ /g')
-			
+
 			for fMRIName in ${fMRINamesFlat}; do
 				echo "  ${fMRIName}"
 
@@ -208,7 +257,7 @@ main() {
         	#need arrays to sanity check number of concat groups
         	IFS=' @' read -a concatarray <<< "${ConcatNames}"
         	IFS=% read -a fmriarray <<< "${fMRINames}"
-        	
+
         	if ((${#concatarray[@]} != ${#fmriarray[@]})); then
         	    echo "ERROR: number of names in ConcatNames does not match number of fMRINames groups"
         	    exit 1
@@ -247,4 +296,3 @@ main() {
 # Invoke the main function to get things started
 #
 main "$@"
-

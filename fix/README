@@ -1,0 +1,215 @@
+
+-------------------------------------------------------
+  FIX - FMRIB's ICA-based Xnoiseifier
+  Gholamreza Salimi-Khorshidi and Stephen Smith, FMRIB Analysis Group
+  MATLAB compilation/wrapper Duncan Mortimer
+  Copyright (C) 2012-2013 University of Oxford
+-------------------------------------------------------
+
+  =========
+
+  SETUP
+
+  =========
+
+The FIX package requires FSL, R and one of MATLAB Runtime Component, full MATLAB or Octave. We recommend the use of the MATLAB Runtime Component.
+
+Requires: FSL
+
+Requires: R
+
+Linux:
+======
+
+Install R
+---------
+
+On Centos:
+
+sudo yum install "@Development Tools" R R-devel
+
+Start R and run the following command
+install.packages("devtools")
+
+On Ubuntu:
+
+sudo apt-get install r-base r-cran-devtools
+
+Then on either Linux:
+
+require(devtools)
+chooseCRANmirror()
+install_version("kernlab", version="0.9-24")
+install_version("ROCR", version="1.0-7")
+install_version("class", version="7.3-14")
+install_version("mvtnorm", version="1.0.8")
+install_version("multcomp", version="1.4-8")
+install_version("coin", version="1.2.2")
+install_version("party", version="1.0-25")
+install_version("e1071", version="1.6-7")
+install_version("randomForest", version="4.6-12")
+
+Inside settings.sh set FSL_FIX_R_CMD to the result of:
+
+which R
+
+(which is usually /usr/bin/R)
+
+macOS:
+======
+
+Install R
+---------
+
+. $FSLDIR/fslpython/bin/activate $FSLDIR/fslpython/envs/fslpython
+
+If your FSLDIR folder requires admin rights to modify (e.g. it's in /usr/local) then
+prepend these commands with sudo.
+
+$FSLDIR/fslpython/bin/conda install R=3.4
+$FSLDIR/fslpython/bin/conda install r-rocr=1.0_7 r-kernlab=0.9_25 r-randomForest=4.6_12 r-class=7.3_14 r-e1071=1.6_8 r-devtools
+
+Launch R with:
+
+$FSLDIR/fslpython/envs/fslpython/bin/R
+
+and run the following (with sudo if FSLDIR modifications needs admin rights):
+
+require(devtools)
+chooseCRANmirror()
+install_version("mvtnorm", version="1.0-8")
+install_version("multcomp", version="1.4-8")
+install_version("coin", version="1.2-2")
+install_version("party", version="1.0-25")
+
+Inside settings.sh set FSL_FIX_R_CMD to $FSLDIR/fslpython/envs/fslpython/bin/R
+
+
+Requires: MATLAB Style environment
+
+  There are three options for running the MATLAB components of FIX, via the compiled code
+  (requires a MATLAB Compiler Runtime) (preferred). In a full MATLAB install (requires
+  a purchase AND the Signal Toolbox) or via the open source MATLAB equivalent Octave.
+
+  MATLAB Runtime Component:
+  This is the preferred mechanism.
+
+	If there is a folder 'compiled' in the FIX folder then the MATLAB portions have
+	been compiled for running without MATLAB. To use this you need to install the
+  MATLAB Compiler Runtime (MCR) version that FIX was compiled against. To identify this
+  run the script:
+
+  ./mcr_script.sh
+
+  This will give the URL to download the MCR from and indicate which version you need.
+  Once you have downloaded the MCR you need to install it somewhere and then set
+  FSL_FIX_MCRROOT in 'settings.sh' to refer to the folder containing the runtime(s), e.g.
+  if you have a folder /usr/local/mcr which contains the runtime v93, then FSL_FIX_MCRROOT
+  should be set to /usr/local/mcr.
+
+or:
+
+  MATLAB, with the following toolboxes:
+		signal
+
+or:
+  Octave (>=3.4), with the following toolboxes:
+        io
+        (miscellaneous 1.0.11 for 3.4)
+        statistics (1.1.3 for 3.4)
+        specfun
+        general
+        control (2.2.5 for 3.4)
+        (struct for 3.4)
+        (optim for 3.4)
+        signal
+
+  To install these toolboxes, use the script setup_octave.sh - this will ask for a 'sudo' password if
+  required (use -g option to install globally rather than for just this user account).
+
+  Octave 3.4
+  ==========
+  EPEL on Centos/RedHat/Scientific Linux provides Octave 3.4 which cannot install several
+  packages from Octave forge, so download the following from http://sourceforge.net/projects/octave/files/Octave%20Forge%20Packages/Individual%20Package%20Releases/
+  	miscellaneous-1.0.11.tar.gz
+  	statistics-1.1.3.tar.gz
+  	control-2.2.5.tar.gz
+  	signal-1.1.2.tar.gz
+  Change to the folder where these have been downloaded to and install with:
+  	octave --eval 'pkg install -auto -forge io; pkg install -auto miscellaneous-1.0.11.tar.gz; \
+pkg install -auto statistics-1.1.3.tar.gz; pkg install -auto -forge specfun; pkg install -auto -forge general; \
+pkg install -auto control-2.2.5.tar.gz; pkg install -auto -forge struct; pkg instal -auto -forge optim; \
+pkg install -auto signal-1.1.2.tar.gz;'
+  To install system-wide run Octave as an admin user and add the option '-global' to each 'pkg install' command.
+
+  Octave 3.6
+  ==========
+  Install the required packages using:
+    octave --eval 'pkg install -auto -forge io; pkg install -auto -forge statistics; \
+pkg install -auto -forge specfun; pkg install -auto -forge general; \
+pkg install -auto -forge control; pkg install -auto -forge signal;'
+  To install system-wide run Octave as an admin user and add the option '-global' to each 'pkg install' command.
+
+  =============
+
+  Configuration
+
+  =============
+
+Setup: edit the "settings.sh" script to reflect your system setup - descriptions
+of the options are given in this file.
+If using the compiled MATLAB version, make sure that FSL_FIX_MCRROOT is set to the location of the MATLAB
+Compiler Runtime you installed as per the instructions above.
+Setup for using inside HCP pipelines (only needed for HCP):
+Ensure the FSL_FIX_CIFTIRW and FSL_FIX_WBC variables in settings.sh are pointed
+at your HCP Workbench MATLAB CIFTIRW and Workbench folders respectively.
+
+
+  ==================
+
+  MATLAB Compilation
+
+  ==================
+
+  The MATLAB .m files can be compiled to allow fix to run without requiring MATLAB
+  licenses (especially useful where it will be run on a cluster). Fix is distributed
+  with pre-compiled MATLAB components, but if you wish to compile against a different
+  MATLAB version (and you have a full commercial license for MATLAB) then you can use
+  the following instructions to compile a custom version.
+
+  To compile, ensure you have the MATLAB compiler toolbox installed and GNU make
+  (Centos/RedHat/Scientific Linux: sudo yum -y install make
+   Ubuntu/Debian: sudo apt-get install make
+   OS X: Install XCode and the command line tools (XCode Preferences > Downloads) )
+  then issue the following command from within the fix folder:
+     ./build_MATLAB
+
+  If the script cannot automatically find your 'matlab' command, configure settings.sh
+  to point at the matlab and mcc programs.
+
+  This will install the binaries into 'compiled/`OS`/`arch`' (eg
+  compiled/Darwin/x86_64 or compiled/Linux/x86_64) and create a file 'MCR.version'
+  containing the version number of the MATLAB Compiler Runtime necessary to run
+  this program.
+
+  If you wish to build a re-distributable tar.gz file of the compiled software you
+  should run ./build_MATLAB on each platform of interest (e.g. Linux and macOS),
+  collating the compiled/Linux and compiled/Darwin folders into a single copy of the
+  fix folder and then run:
+    ./build_MATLAB release
+
+  This will generate fix.tar.gz in the fix folder which can then be distributed.
+
+-------------------------------------------------------
+
+  =============
+
+  USAGE
+
+  =============
+
+See usage instructions at the FSL Wiki:
+https://www.fmrib.ox.ac.uk/fsl/FIX
+
+-------------------------------------------------------
+

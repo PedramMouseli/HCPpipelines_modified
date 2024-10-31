@@ -12,7 +12,7 @@
 #   Changes by Timothy B. Brown <tbbrown@wustl.edu>
 #
 #   1) Changes to support 7T ICAFIX processing based on changes originally made by Keith Jamison <kjamison@umn.edu>
-#   2) Changes to log output messages to aid in debugging 
+#   2) Changes to log output messages to aid in debugging
 #
 #   Changes by Tim Coalson
 #
@@ -234,17 +234,17 @@ determine_old_or_new_fsl()
 
 	fsl_primary_version="${fsl_version_array[0]}"
 	fsl_primary_version=${fsl_primary_version//[!0-9]/}
-	
+
 	fsl_secondary_version="${fsl_version_array[1]}"
 	fsl_secondary_version=${fsl_secondary_version//[!0-9]/}
-	
+
 	fsl_tertiary_version="${fsl_version_array[2]}"
 	fsl_tertiary_version=${fsl_tertiary_version//[!0-9]/}
 
-	# determine whether we are using "OLD" or "NEW" FSL 
+	# determine whether we are using "OLD" or "NEW" FSL
 	# 6.0.0 and below is "OLD"
 	# 6.0.1 and above is "NEW"
-	
+
 	if [[ $(( ${fsl_primary_version} )) -lt 6 ]] ; then
 		# e.g. 4.x.x, 5.x.x
 		old_or_new="OLD"
@@ -278,12 +278,12 @@ demeanMovementRegressors() {
 	log_Debug_Msg "demeanMovementRegressors: Out: ${Out}"
 	log_Debug_Msg "demeanMovementRegressors: getting nCols"
 	nCols=$(head -1 ${In} | wc -w)
-	
+
 	log_Debug_Msg "demeanMovementRegressors: nCols: ${nCols}"
 	log_Debug_Msg "demeanMovementRegressors: getting nRows"
 	nRows=$(wc -l < ${In})
 	log_Debug_Msg "demeanMovementRegressors: nRows: ${nRows}"
-	
+
 	AllOut=""
 	c=1
 	while (( c <= nCols )) ; do
@@ -419,7 +419,7 @@ for fmri in "${fmris[@]}" ; do
 	VNCIFTIARRAY+=(-cifti "${fmriNoExt}_Atlas_hp${hp}_vn.dscalar.nii")  #These are the individual run, VN'ed CIFTI *maps* (created by functionhighpassandvariancenormalize)
 	MovementNIFTIMergeARRAY+=("${fmriNoExt}_hp${hp}.ica/mc/prefiltered_func_data_mcf_conf")
 	MovementNIFTIhpMergeARRAY+=("${fmriNoExt}_hp${hp}.ica/mc/prefiltered_func_data_mcf_conf_hp")
-	
+
 	cd `dirname $fmri`
 	log_Debug_Msg "pwd: "$(pwd)
 	fmri=`basename $fmri`  # After this, $fmri no longer includes the leading directory components
@@ -434,7 +434,7 @@ for fmri in "${fmris[@]}" ; do
 		log_Debug_Msg "About to create ${fmri}_hp${hp}.ica/mc/prefiltered_func_data_mcf.par file"
 		cat Movement_Regressors.txt | awk '{ print $4 " " $5 " " $6 " " $1 " " $2 " " $3}' > ${fmri}_hp${hp}.ica/mc/prefiltered_func_data_mcf.par
 	else
-		log_Err_Abort "Movement_Regressors.txt not retrieved properly." 
+		log_Err_Abort "Movement_Regressors.txt not retrieved properly."
 	fi
 
 	#Demean movement regressors
@@ -448,11 +448,11 @@ for fmri in "${fmris[@]}" ; do
 	#Demean CIFTI
 	${Caret7_Command} -cifti-reduce ${fmri}_Atlas.dtseries.nii MEAN ${fmri}_Atlas_mean.dscalar.nii
 	${Caret7_Command} -cifti-math "TCS - MEAN" ${fmri}_Atlas_demean.dtseries.nii -var TCS ${fmri}_Atlas.dtseries.nii -var MEAN ${fmri}_Atlas_mean.dscalar.nii -select 1 1 -repeat
-	
+
 	## "1st pass" VN on the individual runs; high-pass gets done here as well
 	#fslval puts a space on the end of its number, remove it...
 	tr=`$FSLDIR/bin/fslval $fmri pixdim4 | tr -d ' '`  #No checking currently that TR is same across runs
-	log_Msg "tr: ${tr}"  
+	log_Msg "tr: ${tr}"
 	log_Msg "processing FMRI file ${fmri} with highpass ${hp}"
 
 	## MPH: Log output to existing stdout/stderr, rather than a separate .fix.functionhighpassandvariancenormalize.log file
@@ -483,7 +483,7 @@ for fmri in "${fmris[@]}" ; do
 			log_Msg "${matlab_cmd[*]}"
 			"${matlab_cmd[@]}"
 			;;
-		
+
 		1 | 2)
 			# Use interpreted MATLAB or Octave
 			# ${hp} needs to be passed in as a string, to handle the hp=pd* case
@@ -506,7 +506,7 @@ for fmri in "${fmris[@]}" ; do
 	$FSLDIR/bin/imrm ${fmri}_hp${hp}.ica/mc/prefiltered_func_data_mcf_conf_mean
 
 	cd ${DIR}  # Return to directory where script was launched
-	
+
 	log_Msg "Bottom of loop through fmris: fmri: ${fmri}"
 
 done  ### END LOOP (for fmri in $fmris; do)
@@ -523,7 +523,7 @@ then
 		echo "$(basename "$fmri") vn mean: $thismean"
 		fmriarray+=("$fmri")
 		vnmeans+=("$thismean")
-		
+
 		#check for first time through loop
 		if ((${#vnmeans[@]} == 1))
 		then
@@ -549,10 +549,10 @@ then
 			log_Msg "rerunning functionhighpassandvariancenormalize on outlier run $fmri"
 
 			#TSC: assume _mean and _demean haven't been overwritten or deleted?
-			
+
 			## "1st pass" VN on the individual runs; high-pass gets done here as well
 			tr=`$FSLDIR/bin/fslval $fmri pixdim4 | tr -d ' '`  #No checking currently that TR is same across runs
-			log_Msg "tr: ${tr}"  
+			log_Msg "tr: ${tr}"
 			log_Msg "processing FMRI file ${fmri} with highpass ${hp}"
 
 			if [ `$FSLDIR/bin/imtest $fmri` != 1 ]; then
@@ -597,7 +597,7 @@ then
 			$FSLDIR/bin/imrm ${fmri}_hp${hp}.ica/mc/prefiltered_func_data_mcf_conf_mean
 
 			cd ${DIR}  # Return to directory where script was launched
-			
+
 			log_Msg "Bottom of loop through fmris: fmri: ${fmri}"
 		fi
 	done
@@ -610,8 +610,8 @@ fi
 #Make Concatenated Folder
 ConcatFolder=`dirname ${ConcatName}`
 log_Msg "Making concatenated folder: ${ConcatFolder}"
-if [ ! -e ${ConcatFolder} ] ; then  
-	mkdir ${ConcatFolder} 
+if [ ! -e ${ConcatFolder} ] ; then
+	mkdir ${ConcatFolder}
 else
 	/bin/rm -r ${ConcatFolder}
 	log_Warn "Previous ${ConcatFolder} directory removed"
@@ -709,7 +709,7 @@ fslmerge -tr ${ConcatFolder}/${concatfmrihp}.ica/mc/prefiltered_func_data_mcf_co
 cd ${ConcatFolder}
 
 ## "2nd pass" VN
-## This is solely so that we can apply our own variance normalization as part of the spatial ICA, 
+## This is solely so that we can apply our own variance normalization as part of the spatial ICA,
 ## rather than using the VN algorithm internal to melodic
 ## (The resulting ${concatfmrihp}_vnts time series is NOT the one that gets cleaned by FIX).
 ## See comments above about regarding the use of call_matlab here.
@@ -725,7 +725,7 @@ case ${FSL_FIX_MATLAB_MODE} in
 		log_Msg "${matlab_cmd[*]}"
 		"${matlab_cmd[@]}"
 		;;
-		
+
 	1 | 2)
 		# Use interpreted MATLAB or Octave
 		# ${hp} needs to be passed in as a string, to handle the hp=pd* case
@@ -862,23 +862,23 @@ cd ../..
 ## Actually run FIX
 ## ---------------------------------------------------------------------------
 
-log_Msg "Running FIX"
+# log_Msg "Running FIX"
 
 # Changes to handle user specified training data file
 if [[ "${TrainingData}" != "" ]]; then
 	# User has specified a training data file
-	
+
 	# add .RData suffix if not already there
-	if [[ "${TrainingData}" != *.RData ]]; then 
+	if [[ "${TrainingData}" != *.RData ]]; then
 		TrainingData=${TrainingData}.RData
 	fi
-	
+
 	# if the specified TrainingData is not a full path to an existing file,
 	# assume that the user is specifying the name of a file in the training_files folder in FSL_FIXDIR
-	if [ ! -f "${TrainingData}" ]; then 
+	if [ ! -f "${TrainingData}" ]; then
 		TrainingData=${FSL_FIXDIR}/training_files/${TrainingData}
 	fi
-	
+
 	# finally, if the TrainingData file is not found, report an error and get out of here
 	if [[ ! -f "${TrainingData}" ]]; then
 		log_Err_Abort "FIX training data not found: ${TrainingData}"
@@ -916,7 +916,7 @@ return_code=$?
 if [ "${return_code}" -ne "0" ]; then
 	log_Err_Abort "return_code from fix_cmd: ${return_code}"
 fi
-	
+
 log_Msg "Done running FIX"
 
 ## ---------------------------------------------------------------------------
@@ -987,7 +987,7 @@ for fmri in "${fmris[@]}" ; do
 	NumTPS=`${Caret7_Command} -file-information ${fmriNoExt}_Atlas.dtseries.nii -no-map-info -only-number-of-maps`
 	Stop=`echo "${NumTPS} + ${Start} -1" | bc -l`
 	log_Msg "${fmriNoExt}: Start=${Start} Stop=${Stop}"
-	
+
 	cifti_out=${fmriNoExt}_Atlas_hp${hp}_clean.dtseries.nii
 	${Caret7_Command} -cifti-merge ${cifti_out} -cifti ${ConcatFolder}/${concatfmri}_Atlas_hp${hp}_clean.dtseries.nii -column ${Start} -up-to ${Stop}
 	${Caret7_Command} -cifti-math "((TCS / VNA) * VN) + Mean" ${cifti_out} -var TCS ${cifti_out} -var VNA ${ConcatFolder}/${concatfmri}_Atlas_hp${hp}_vn.dscalar.nii -select 1 1 -repeat -var VN ${fmriNoExt}_Atlas_hp${hp}_vn.dscalar.nii -select 1 1 -repeat -var Mean ${fmriNoExt}_Atlas_mean.dscalar.nii -select 1 1 -repeat

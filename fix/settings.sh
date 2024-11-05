@@ -72,7 +72,7 @@ fi
 # ========================
 # Skip this if you aren't using mode 1
 if [ "$FSL_FIX_MATLAB_MODE" -eq 1 ]; then
-	MATLAB_BIN="/Applications/MATLAB_R2021a.app/bin/matlab"
+	MATLAB_BIN="/Applications/MATLAB_R2024b.app/bin/matlab"
 	# Look for installed MATLAB
 	if [ -z "${MATLAB_BIN}" ]; then
 		MATLAB_BIN=$(which matlab 2>/dev/null)

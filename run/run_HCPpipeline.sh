@@ -9,14 +9,14 @@ read -p "Enter subject IDs: " SubList
 
 # echo "$(timestamp)"
 #
-ScriptsFolder=/Users/moayedilab/Documents/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts
+ScriptsFolder=/Users/moayedilab/Library/CloudStorage/OneDrive-UniversityofToronto/PhD/codes/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts
 StudyFolder=/Volumes/encrypteddata_2/TMD/CIHR_TMD/Data-BIDS
 
-# Pre-FreeSurfer
-echo "$(timestamp)"
-echo "Running the Pre-FreeSurfer script"
+# # Pre-FreeSurfer
+# echo "$(timestamp)"
+# echo "Running the Pre-FreeSurfer script"
 
-"$ScriptsFolder"/PreFreeSurferPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
+# "$ScriptsFolder"/PreFreeSurferPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
 
 # FreeSurfer
 echo "$(timestamp)"

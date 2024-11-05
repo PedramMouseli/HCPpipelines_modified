@@ -656,6 +656,9 @@ ${Caret7_Command} -cifti-math "TCS * VN" "${ConcatNameNoExt}_Atlas_hp${hp}.dtser
 log_Debug_Msg "About to put contents of ${MovementTXTMergeARRAY[*]} in Movement_Regressors_demean.txt file"
 cat "${MovementTXTMergeARRAY[@]}" > ${ConcatFolder}/Movement_Regressors_demean.txt
 
+#Plot the movement regressors
+python ${HCPPIPEDIR}/ICAFIX/PlotMovementRegressors.py ${ConcatFolder}/Movement_Regressors_demean.txt ${ConcatFolder}/Movement_Regressors_demean.png
+
 # Also, we no longer need the individual run VN'ed or demeaned time series (either volume or CIFTI); delete to save space
 for fmri in "${fmris[@]}" ; do
 	log_Msg "Removing the individual run VN'ed and demeaned time series for ${fmri}"

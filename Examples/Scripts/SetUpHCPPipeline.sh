@@ -30,7 +30,7 @@ export HCPCIFTIRWDIR="$HCPPIPEDIR"/global/matlab/cifti-matlab
 
 ## Set up FSL (if not already done so in the running environment)
 ## Uncomment the following 2 lines (remove the leading #) and correct the FSLDIR setting for your setup
-export FSLDIR=/usr/local/fsl
+export FSLDIR=/Users/moayedilab/fsl
 source "$FSLDIR/etc/fslconf/fsl.sh"
 
 ## Let FreeSurfer explicitly know what version of FSL to use (this shouldn't need changing)
@@ -45,8 +45,8 @@ source ${FREESURFER_HOME}/SetUpFreeSurfer.sh > /dev/null 2>&1
 # If you want to use MSM Configuration files other than those already provided, can change the following
 export MSMCONFIGDIR="${HCPPIPEDIR}/MSMConfig"
 
-# Skip parallel processing for Workbench which can cause problems when using Apple silicon CPUs
 export OMP_NUM_THREADS=1
+
 # ---------------------------------------------------------
 # Users probably won't need to edit anything below this line
 # ---------------------------------------------------------

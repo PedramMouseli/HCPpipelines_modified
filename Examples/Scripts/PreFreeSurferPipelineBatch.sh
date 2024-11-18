@@ -131,7 +131,7 @@ main()
 
 	# Set variable value that sets up environment
 	# EnvironmentScript="${HOME}/projects/Pipelines/Examples/Scripts/SetUpHCPPipeline.sh" # Pipeline environment script
-	EnvironmentScript="${HOME}/Documents/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts/SetUpHCPPipeline_fs7.sh" # Pipeline environment script
+	EnvironmentScript="${HOME}/Library/CloudStorage/OneDrive-UniversityofToronto/PhD/codes/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts/SetUpHCPPipeline_fs7.sh" # Pipeline environment script
 
 	# Use any command line specified options to override any of the variable settings above
 	if [ -n "${command_line_specified_study_folder}" ]; then

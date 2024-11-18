@@ -66,6 +66,10 @@ NONE: don't do bias correction"
 
 opts_AddOptional '--fmriscout' 'fMRIScout' 'volume' "Used as the target for motion correction and for BBR registration to the structurals.  In HCP-Style acquisitions, the 'SBRef' (single-band reference) volume associated with a run is   typically used as the 'scout'. Default: 'NONE' (in which case the first volume of the time-series is extracted and used as the 'scout')  It must have identical dimensions, voxel resolution, and distortions (i.e., phase-encoding   polarity and echo-spacing) as the input fMRI time series" "NONE"
 
+opts_AddOptional '--fmrifirstvol' 'fMRIFirstVol' 'number' "First volume to keep from the fMRI time series"
+
+opts_AddOptional '--fmrivolnum' 'fMRIVolNum' 'number' "Number of volumes to keep from the fMRI time series"
+
 opts_AddOptional '--mctype' 'MotionCorrectionType' 'MCFLIRT OR FLIRT' "What type of motion correction to use MCFLIRT or FLIRT, Default is MCFLIRT" "MCFLIRT"
 
 opts_AddMandatory '--gdcoeffs' 'GradientDistortionCoeffs' 'file' "Set to 'NONE' to skip gradient non-linearity distortion correction (GDC)."
@@ -638,6 +642,15 @@ if [ ! -e "$fMRIFolder" ] ; then
     mkdir "$fMRIFolder"
 fi
 ${FSLDIR}/bin/imcp "$fMRITimeSeries" "$fMRIFolder"/"$OrigTCSName"
+
+# Check if values exist for this task
+if [[ -n "${fMRIFirstVol}" && -n "${fMRIVolNum}" ]]; then
+    log_Msg "Processing $NameOffMRI with first volume ${fMRIFirstVol} and volume number ${fMRIVolNum}"
+    ${FSLDIR}/bin/fslroi "$fMRIFolder"/"$OrigTCSName" "$fMRIFolder"/"$OrigTCSName" $fMRIFirstVol $fMRIVolNum
+else
+    log_Msg "Skipping volume operations for $NameOffMRI"
+    # Continue with other processing
+fi
 
 
 if [[ $nEcho -gt 1 ]] ; then

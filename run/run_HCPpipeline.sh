@@ -18,17 +18,17 @@ StudyFolder=/Volumes/encrypteddata_2/TMD/CIHR_TMD/Data-BIDS
 
 # "$ScriptsFolder"/PreFreeSurferPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
 
-# FreeSurfer
-echo "$(timestamp)"
-echo "Running the FreeSurfer script"
+# # FreeSurfer
+# echo "$(timestamp)"
+# echo "Running the FreeSurfer script"
 
-"$ScriptsFolder"/FreeSurferPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
+# "$ScriptsFolder"/FreeSurferPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
 
-# Post-FreeSurfer
-echo "$(timestamp)"
-echo "Running the Post-FreeSurfer script"
+# # Post-FreeSurfer
+# echo "$(timestamp)"
+# echo "Running the Post-FreeSurfer script"
 
-"$ScriptsFolder"/PostFreeSurferPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
+# "$ScriptsFolder"/PostFreeSurferPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
 
 # Generic fMRI Volume Processing
 echo "$(timestamp)"

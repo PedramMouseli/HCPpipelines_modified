@@ -41,7 +41,7 @@ get_batch_options "$@"
 
 StudyFolder="${HOME}/projects/Pipelines_ExampleData" #Location of Subject folders (named by subjectID)
 Subjlist="100307 100610" #Space delimited list of subject IDs
-EnvironmentScript="${HOME}/Documents/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts/SetUpHCPPipeline.sh" #Pipeline environment script
+EnvironmentScript="${HOME}/Library/CloudStorage/OneDrive-UniversityofToronto/PhD/codes/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts/SetUpHCPPipeline.sh" #Pipeline environment script
 
 if [ -n "${command_line_specified_study_folder}" ]; then
     StudyFolder="${command_line_specified_study_folder}"
@@ -144,19 +144,48 @@ TaskList_general+=(stress_run-2)
 TaskList_general+=(stress_run-3)
 TaskList_general+=(stress_run-4)
 
-# TaskList=()
-# TaskList+=(clench_run-1)
-# TaskList+=(clench_run-2)
-# TaskList+=(clench_run-3)
-# TaskList+=(clench_run-4)
-# TaskList+=(rest)
-# # TaskList+=(localizer_run-1)
-# # TaskList+=(localizer_run-2)
-# # TaskList+=(localizer_run-3)
-# TaskList+=(stress_run-1)
-# TaskList+=(stress_run-2)
-# TaskList+=(stress_run-3)
-# TaskList+=(stress_run-4)
+# Excluding unwanted volumes. For each task, enter the first volume to keep (starting from 0)
+# and the total number of volumes to keep. If the total number of volumes to keep is set to -1,
+# all volumes after the first volume will be kept. Leave both variables blank if you want to keep all volumes.
+# Function to get first volume for a task
+get_first_vol() {
+    local task="$1"
+    case "$task" in
+        "clench_run-1") echo "2" ;;
+        "clench_run-2") echo "2" ;;
+        "clench_run-3") echo "2" ;;
+        "clench_run-4") echo "2" ;;
+        "rest") echo "" ;;
+        "localizer_run-1") echo "2" ;;
+        "localizer_run-2") echo "2" ;;
+        "localizer_run-3") echo "2" ;;
+        "stress_run-1") echo "2" ;;
+        "stress_run-2") echo "2" ;;
+        "stress_run-3") echo "2" ;;
+        "stress_run-4") echo "2" ;;
+        *) echo "" ;;
+    esac
+}
+
+# Function to get volume number for a task
+get_vol_num() {
+    local task="$1"
+    case "$task" in
+        "clench_run-1") echo "91" ;;
+        "clench_run-2") echo "91" ;;
+        "clench_run-3") echo "91" ;;
+        "clench_run-4") echo "91" ;;
+        "rest") echo "" ;;
+        "localizer_run-1") echo "90" ;;
+        "localizer_run-2") echo "90" ;;
+        "localizer_run-3") echo "115" ;;
+        "stress_run-1") echo "54" ;;
+        "stress_run-2") echo "54" ;;
+        "stress_run-3") echo "54" ;;
+        "stress_run-4") echo "54" ;;
+        *) echo "" ;;
+    esac
+}
 
 
 # Start or launch pipeline processing for each subject
@@ -177,6 +206,10 @@ for Subject in $Subjlist ; do
 
         TaskName=`echo ${fMRIName} | sed 's/_[APLR]\+$//'`
         echo "  ${SCRIPT_NAME}: TaskName: ${TaskName}"
+
+        # Get first volume and volume number to keep for the task
+        firstVol=$(get_first_vol "$fMRIName")
+        volNum=$(get_vol_num "$fMRIName")
 
         # len=${#fMRIName}
         # echo "  ${SCRIPT_NAME}: len: $len"
@@ -259,10 +292,10 @@ for Subject in $Subjlist ; do
         # PhaseInputName="NONE" #Expects a 3D Phase difference volume (Siemen's style) -or Fieldmap in Hertz for GE Healthcare
 
         EchoTime1=$( jq .EchoTime "${StudyFolder}/${Subject}/fmap/${Subject}_magnitude1.json" )
-    		EchoTime2=$( jq .EchoTime "${StudyFolder}/${Subject}/fmap/${Subject}_magnitude2.json" )
-    		Delta=$(echo $EchoTime2 - $EchoTime1 | bc)
-    		Delta_sec=$(echo "scale=4; $Delta*1000" | bc)
-    		DeltaTE=${Delta_sec#-}
+        EchoTime2=$( jq .EchoTime "${StudyFolder}/${Subject}/fmap/${Subject}_magnitude2.json" )
+        Delta=$(echo $EchoTime2 - $EchoTime1 | bc)
+        Delta_sec=$(echo "scale=4; $Delta*1000" | bc)
+        DeltaTE=${Delta_sec#-}
         # DeltaTE="NONE" #For Siemens, typically 2.46ms for 3T, 1.02ms for 7T; For GE Healthcare at 3T, *usually* 2.304ms for 2D-B0MAP and 2.272ms for 3D-B0MAP
         # For GE HealthCare, see related notes in PreFreeSurferPipelineBatch.sh and FieldMapProcessingAll.sh
 
@@ -306,6 +339,8 @@ for Subject in $Subjlist ; do
             --fmriname="$fMRIName" \
             --fmritcs="$fMRITimeSeries" \
             --fmriscout="$fMRISBRef" \
+            --fmrifirstvol="$firstVol" \
+            --fmrivolnum="$volNum" \
             --SEPhaseNeg="$SpinEchoPhaseEncodeNegative" \
             --SEPhasePos="$SpinEchoPhaseEncodePositive" \
             --fmapmag="$MagnitudeInputName" \
@@ -328,6 +363,8 @@ for Subject in $Subjlist ; do
             --fmriname=$fMRIName \
             --fmritcs=$fMRITimeSeries \
             --fmriscout=$fMRISBRef \
+            --fmrifirstvol=$firstVol \
+            --fmrivolnum=$volNum \
             --SEPhaseNeg=$SpinEchoPhaseEncodeNegative \
             --SEPhasePos=$SpinEchoPhaseEncodePositive \
             --fmapmag=$MagnitudeInputName \

@@ -423,6 +423,7 @@ for fmri in "${fmris[@]}" ; do
 	cd `dirname $fmri`
 	log_Debug_Msg "pwd: "$(pwd)
 	fmri=`basename $fmri`  # After this, $fmri no longer includes the leading directory components
+
 	fmri=`$FSLDIR/bin/imglob $fmri`  # After this, $fmri will no longer have an extension (if there was one initially)
 	if [ `$FSLDIR/bin/imtest $fmri` != 1 ]; then
 		log_Err_Abort "Invalid 4D_FMRI input file specified: ${fmri}"
@@ -444,6 +445,14 @@ for fmri in "${fmris[@]}" ; do
 	#Demean volumes
 	${FSLDIR}/bin/fslmaths $fmri -Tmean ${fmri}_mean
 	${FSLDIR}/bin/fslmaths $fmri -sub ${fmri}_mean ${fmri}_demean
+
+	# #Delete unwanted volumes
+	# log_Msg "fmri variable: ${fmri}"
+	# if [[ "$fmri" == *clench* ]]; then
+	# 	log_Msg "removing volumes"
+	# 	${FSLDIR}/bin/fslroi ${fmri}_demean ${fmri}_demean 2 91
+	# 	${FSLDIR}/bin/fslroi ${fmri} ${fmri} 2 91
+	# fi
 
 	#Demean CIFTI
 	${Caret7_Command} -cifti-reduce ${fmri}_Atlas.dtseries.nii MEAN ${fmri}_Atlas_mean.dscalar.nii

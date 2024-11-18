@@ -6,8 +6,7 @@ SAVEHCPPIPE="${HCPPIPEDIR:-}"
 ## Edit this line: environment variable for location of HCP Pipeline repository
 ## If you leave it blank, and $HCPPIPEDIR already exists in the environment,
 ## that will be used instead (via the SAVEHCPPIPE variable, defined above)
-export HCPPIPEDIR="${HOME}/Documents/HCP_pipelines/HCPpipelines-4.8.0"
-
+export HCPPIPEDIR="${HOME}/Library/CloudStorage/OneDrive-UniversityofToronto/PhD/codes/HCP_pipelines/HCPpipelines-4.8.0"
 # Don't edit this section, it allows sourcing SetUp... without editing it if you set things in advance
 if [[ -z "$HCPPIPEDIR" ]]
 then
@@ -21,9 +20,9 @@ fi
 
 ## Edit this section: set up other environment variables
 # export MSMBINDIR="${HOME}/pipeline_tools/MSM"
-export MSMBINDIR="${HOME}/Documents/HCP_pipelines/HCPpipelines-4.8.0/MSMBinaries"
+export MSMBINDIR="${HCPPIPEDIR}/MSMBinaries"
 # export MATLAB_COMPILER_RUNTIME=/export/matlab/MCR/R2017b/v93
-export FSL_FIXDIR="${HOME}/Documents/HCP_pipelines/HCPpipelines-4.8.0/fix"
+export FSL_FIXDIR="${HCPPIPEDIR}/fix"
 # If a suitable version of wb_command is on your $PATH, CARET7DIR can be blank
 export CARET7DIR="/Applications/workbench/bin_macosxub"
 export HCPCIFTIRWDIR="$HCPPIPEDIR"/global/matlab/cifti-matlab

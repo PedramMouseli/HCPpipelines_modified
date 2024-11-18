@@ -5,6 +5,7 @@ This is a modified version of the [HCP pipelines][HCPpipelines]. Some of the cha
 * An additional T1w image (INV2 from the MP2RAGE sequence) which has more clear edges is used for calculating the linear and non-linear transformations to the standard space.
 * FSL FLIRT and FNIRT were replaced with [ANTs][ants] for the linear and non-linear registration. 
 * ANTs transformations converted to the FSL format using [c3d_affine_tool][c3d_affine] and [Workbench][wb].
+* Option added for excluding volumes from the beginning and end of the fMRI time series in the fMRI volume processing step.
 * [TODO] option for toggling the use of the INV2 image.
 
 # HCP Pipelines 

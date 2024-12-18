@@ -3,7 +3,7 @@
 # Global default values
 DEFAULT_STUDY_FOLDER="${HOME}/data/Pipelines_ExampleData"
 DEFAULT_SUBJECT_LIST="100307 100610"
-DEFAULT_ENVIRONMENT_SCRIPT="${HOME}/Documents/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts/SetUpHCPPipeline.sh"
+DEFAULT_ENVIRONMENT_SCRIPT="${HOME}/Library/CloudStorage/OneDrive-UniversityofToronto/PhD/codes/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts/SetUpHCPPipeline.sh"
 DEFAULT_RUN_LOCAL="FALSE"
 #DEFAULT_FIXDIR="${HOME}/tools/fix1.06"  ##OPTIONAL: If not set will use $FSL_FIXDIR specified in EnvironmentScript
 
@@ -183,7 +183,7 @@ main() {
 	domot=FALSE
 
 	# set the training data used in multi-run fix mode
-	MRTrainingData=HCP_Style_Single_Multirun_Dedrift.RData
+	MRTrainingData=TMDmodel_PyFIX.pyfix_model
 
 	# set the training data used in single-run fix mode
 	SRTrainingData=HCP_hp2000.RData

@@ -1,0 +1,25 @@
+/Volumes/encrypteddata_2/TMD/CIHR_TMD/Data-BIDS/sub-C001+/processed/MNINonLinear/Results/clench_ICA/clench_ICA_hp125.ica/filtered_func_data.ica
+1, Noise, True
+2, Noise, True
+3, Noise, True
+4, Noise, True
+5, Noise, True
+6, Noise, True
+7, Noise, True
+8, Noise, True
+9, Signal, False
+10, Unknown, False
+11, Noise, True
+12, Noise, True
+13, Signal, False
+14, Noise, True
+15, Unknown, False
+16, Unknown, False
+17, Signal, False
+18, Signal, False
+19, Signal, False
+20, Signal, False
+21, Signal, False
+22, Noise, True
+23, Unknown, False
+[1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 14, 22]

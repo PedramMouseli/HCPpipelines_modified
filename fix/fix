@@ -186,14 +186,16 @@ case $fix_mode in
       jj=`zeropad $j 5`
       cp $i/hand_labels_noise.txt $TRAIN/${jj}.txt
       cp $i/fix/features.csv $TRAIN/${jj}.csv
-      j=`echo "$j 1 + p" | dc -`
+      # j=`echo "$j 1 + p" | dc -`
+      j=$((j + 1))
     done
     i=1
     while [ $i -lt 11 ] ; do
       echo " running classifier training"
       ${FSL_FIX_R_CMD} CMD BATCH "--no-restore --no-save --args ${FSL_FIXDIR} ${TRAIN} ${TRAIN}.RData" ${FSL_FIXDIR}/fix_2a_train.R ${TRAIN}/.Rlog$i
       [ -f ${TRAIN}.RData ] && i=10000
-      i=`echo "$i 1 + p" | dc -`
+      # i=`echo "$i 1 + p" | dc -`
+      i=$((i + 1))
     done
     if [ $loo = 1 ] ; then
       echo $MELOUT > $TRAIN/.fixlist
@@ -215,7 +217,8 @@ case $fix_mode in
             jids="${jids},$jidd"
           fi
         done
-        j=`echo "$j 1 + p" | dc -`
+        # j=`echo "$j 1 + p" | dc -`
+        j=$((j + 1))
       done
       jidf=`fsl_sub $jids -q short.q -l $LOO ${FSL_FIXDIR}/call_matlab.sh -f fix_2c_loo_results $LOO`
     fi
@@ -232,14 +235,18 @@ case $fix_mode in
         echo testing: $f
         CheckFeatures $f
         for d in 1 2 5 10 20 30 40 50 ; do
+          # echo $TRAIN
+          # echo $d
           jidd=`fsl_sub -q short.q -l $LOO/${j}_$d ${FSL_FIXDIR}/fix -c $f $TRAIN $d`
+          # echo $jidd
           if [ "$jids" = "" ] ; then
             jids="-j $jidd"
           else
             jids="${jids},$jidd"
           fi
         done
-        j=`echo "$j 1 + p" | dc -`
+        # j=`echo "$j 1 + p" | dc -`
+        j=$((j + 1))
       done
       jidf=`fsl_sub $jids -q short.q -l $LOO ${FSL_FIXDIR}/call_matlab.sh -f fix_2c_loo_results $LOO`
     ;;

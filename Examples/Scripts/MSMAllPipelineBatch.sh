@@ -41,7 +41,7 @@ get_batch_options "$@"
 
 StudyFolder="${HOME}/projects/Pipelines_ExampleData" #Location of Subject folders (named by subjectID)
 Subjlist="100307 100610" #Space delimited list of subject IDs
-EnvironmentScript="${HOME}/projects/Pipelines/Examples/Scripts/SetUpHCPPipeline.sh" #Pipeline environment script
+EnvironmentScript="${HOME}/Library/CloudStorage/OneDrive-UniversityofToronto/PhD/codes/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts/SetUpHCPPipeline.sh" #Pipeline environment script
 
 if [ -n "${command_line_specified_study_folder}" ]; then
     StudyFolder="${command_line_specified_study_folder}"
@@ -92,7 +92,7 @@ mrfixNamesToUse="rfMRI_REST1_RL@rfMRI_REST1_LR@rfMRI_REST2_LR@rfMRI_REST2_RL"
 OutfMRIName="rfMRI_REST_CONCAT"
 
 #Use HighPass = 2000 for single-run FIX data, HighPass = 0 for MR FIX data
-HighPass="0"
+HighPass="125"
 #Name to reflect high pass setting
 fMRIProcSTRING="_Atlas_hp0_clean"
 MSMAllTemplates="${HCPPIPEDIR}/global/templates/MSMAll"

@@ -145,9 +145,9 @@ main() {
 
 	TaskList_general=()
 	TaskList_general+=(clench)
-	TaskList_general+=(rest)
-	TaskList_general+=(localizer)
-	TaskList_general+=(stress)
+	# TaskList_general+=(rest)
+	# TaskList_general+=(localizer)
+	# TaskList_general+=(stress)
 
 	runs="run-1 run-2 run-3 run-4"
 

@@ -9,7 +9,7 @@ try
     end
     % % get the time series and the number of ICs
     melodicMixFile = [icaFolder 'filtered_func_data.ica/melodic_mix'];
-    mixingMatrix = load(melodicMixFile);
+    mixingMatrix = load(melodicMixFile, '-ascii');
     numberOfIcs = size(mixingMatrix,2);
     
     % % Image acquisition parameters

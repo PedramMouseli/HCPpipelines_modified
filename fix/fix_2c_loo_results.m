@@ -19,14 +19,14 @@ for ithresh=1:length(thresh)
     f=char(thelist{1}(i));
 
     call_fsl(sprintf('fslnvols %s/filtered_func_data.ica/melodic_IC > %s',f,grot));
-    Nics=load(sprintf('%s',grot));
+    Nics=load(sprintf('%s',grot), '-ascii');
 
     system(sprintf('tail -n 1 %s/hand_labels_noise.txt | sed ''s/\\[//g'' | sed ''s/\\]//g'' | sed ''s/,//g'' > %s',f,grot));
-    hand=load(sprintf('%s',grot));
+    hand=load(sprintf('%s',grot), '-ascii');
 
     system(sprintf('tail -n 1 %s/fix4melview_%s_thr%d.txt | sed ''s/\\[//g'' | sed ''s/\\]//g'' | sed ''s/,//g'' > %s',f,bLOODIR,thresh(ithresh),grot));
     try
-        fix=load(sprintf('%s',grot));
+        fix=load(sprintf('%s',grot), '-ascii');
     catch
         fix=[];
     end

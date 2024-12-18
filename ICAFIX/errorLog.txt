@@ -1,0 +1,24 @@
+Error Time: 11/22/2024 13:51:18
+Error using load
+Unable to read MAT-file /Volumes/encrypteddata_2/TMD/CIHR_TMD/Data-BIDS/sub-C001+/processed/MNINonLinear/Results/clench_ICA/clench_ICA_hp125.ica/filtered_func_data.ica/melodic_mix. Not a binary MAT-file. Try load -ASCII to read as text.
+ 
+Error Time: 11/22/2024 14:00:41
+Error using load
+Unable to read MAT-file /Volumes/encrypteddata_2/TMD/CIHR_TMD/Data-BIDS/sub-C001+/processed/MNINonLinear/Results/clench_ICA/clench_ICA_hp125.ica/filtered_func_data.ica/melodic_mix. Not a binary MAT-file. Try load -ASCII to read as text.
+ 
+Error Time: 11/22/2024 14:08:45
+Error using load
+Unable to read MAT-file /Volumes/encrypteddata_2/TMD/CIHR_TMD/Data-BIDS/sub-C001+/processed/MNINonLinear/Results/clench_ICA/clench_ICA_hp125.ica/filtered_func_data.ica/melodic_mix. Not a binary MAT-file. Try load -ASCII to read as text.
+ 
+Error Time: 11/22/2024 14:46:12
+Error using load
+Unable to read MAT-file /Volumes/encrypteddata_2/TMD/CIHR_TMD/Data-BIDS/sub-C001+/processed/MNINonLinear/Results/clench_ICA/clench_ICA_hp125.ica/filtered_func_data.ica/melodic_mix. Not a binary MAT-file. Try load -ASCII to read as text.
+ 
+Error Time: 11/22/2024 15:02:58
+Error using load
+Unable to read MAT-file /Volumes/encrypteddata_2/TMD/CIHR_TMD/Data-BIDS/sub-C001+/processed/MNINonLinear/Results/rest_ICA/rest_ICA_hp125.ica/filtered_func_data.ica/melodic_mix. Not a binary MAT-file. Try load -ASCII to read as text.
+ 
+Error Time: 11/22/2024 15:11:32
+Error using load
+Unable to read MAT-file /Volumes/encrypteddata_2/TMD/CIHR_TMD/Data-BIDS/sub-C001+/processed/MNINonLinear/Results/rest_ICA/rest_ICA_hp125.ica/filtered_func_data.ica/melodic_mix. Not a binary MAT-file. Try load -ASCII to read as text.
+ 

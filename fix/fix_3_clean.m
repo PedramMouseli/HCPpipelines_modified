@@ -45,7 +45,7 @@ fprintf('hp = %f\n',hp)
 fprintf('DOvol = %d\n',DOvol)
 
 %%%%  read set of bad components
-DDremove=load(fixlist);
+DDremove=load(fixlist, '-ascii');
 
 %%%%  find TR of data
 [grot,TR]=call_fsl('fslval filtered_func_data pixdim4'); 
@@ -97,7 +97,7 @@ if domot == 1
 end
 
 %%%%  read ICA component timeseries
-ICA=functionnormalise(load(sprintf('filtered_func_data.ica/melodic_mix')));
+ICA=functionnormalise(load(sprintf('filtered_func_data.ica/melodic_mix'), '-ascii'));
 
 %%%%  do the cleanup
 if aggressive == 1

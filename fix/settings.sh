@@ -24,6 +24,7 @@ if [ "${cur_errexit}" = "on" ]; then
 fi
 
 # edit the following variables according to your local setup
+# FSL_FIX_MATLAB_MODE=0
 
 # Part I MATLAB/Octave mode
 # =========================
@@ -43,7 +44,8 @@ if [ "$FSL_FIX_MATLAB_MODE" -eq 0 ]; then
 	# e.g. /usr/local/mcr
 	# Within this folder must be the versioned runtimes, e.g. v93 etc
 	if [ -z "${FSL_FIX_MCRROOT}" ]; then
-		FSL_FIX_MCRROOT="/opt/fmrib/MATLAB/MATLAB_Compiler_Runtime"
+		# FSL_FIX_MCRROOT="/opt/fmrib/MATLAB/MATLAB_Compiler_Runtime"
+		FSL_FIX_MCRROOT="/Applications/MATLAB/MATLAB_Runtime/R2024b"
 		if [ ! -x "$FSL_FIX_MCRROOT" ]; then
 			echo "Can't find the MATLAB compiler runtime, please set FSL_FIX_MCRROOT in the settings.sh file." >2
 		fi

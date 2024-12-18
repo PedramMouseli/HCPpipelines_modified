@@ -30,22 +30,27 @@ StudyFolder=/Volumes/encrypteddata_2/TMD/CIHR_TMD/Data-BIDS
 
 # "$ScriptsFolder"/PostFreeSurferPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
 
-# Generic fMRI Volume Processing
+# # Generic fMRI Volume Processing
+# echo "$(timestamp)"
+# echo "Running the Generic fMRI Volume Processing script"
+
+# "$ScriptsFolder"/GenericfMRIVolumeProcessingPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
+
+# # Generic fMRI Surface Processing
+# echo "$(timestamp)"
+# echo "Running the Generic fMRI Surface Processing script"
+
+# "$ScriptsFolder"/GenericfMRISurfaceProcessingPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
+
+# echo "$(timestamp)"
+# echo "Running the MELODIC script"
+
+# "$ScriptsFolder"/IcaFixMelodicOnlyProcessingBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
+
 echo "$(timestamp)"
-echo "Running the Generic fMRI Volume Processing script"
+echo "Running the FIX script"
 
-"$ScriptsFolder"/GenericfMRIVolumeProcessingPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
-
-# Generic fMRI Surface Processing
-echo "$(timestamp)"
-echo "Running the Generic fMRI Surface Processing script"
-
-"$ScriptsFolder"/GenericfMRISurfaceProcessingPipelineBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
-
-echo "$(timestamp)"
-echo "Running the MELODIC script"
-
-"$ScriptsFolder"/IcaFixMelodicOnlyProcessingBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
+"$ScriptsFolder"/IcaFixProcessingBatch.sh --StudyFolder=$StudyFolder --Subject="$SubList"
 
 echo "$(timestamp)"
 echo "Done!"

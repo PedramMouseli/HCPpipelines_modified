@@ -36,7 +36,7 @@ for sub_id in "$@"; do
         if [ -d "$folder" ]; then
             # Extract features
             echo "Extracting features from ${folder}"
-            ${FSL_FIXDIR}/fix -f ${folder}
+            ${PyFIX_DIR}/fix -f ${folder}
             # Add to space-separated list
             valid_folders="${valid_folders:+$valid_folders }$folder"
         fi
@@ -61,8 +61,7 @@ ${PyFIX_DIR}/fix -t ${output_dir}/TMDmodel_PyFIX -l ${valid_folders}
 
 # classification using an existing model
 # fix_model=/Volumes/encrypteddata_2/TMD/CIHR_TMD/Data-BIDS/derivatives/ICA_FIX/TMDmodel_PyFIX.pyfix_model
-
-# ${FIX_DIR}/fix -C ${fix_model} ${valid_folders}
+# ${PyFIX_DIR}/fix -C ${fix_model} ${valid_folders}
 
 echo "$(timestamp)"
 echo "Done!"

@@ -875,6 +875,16 @@ cd ../..
 ## ---------------------------------------------------------------------------
 
 # log_Msg "Running FIX"
+FSL_PyFIXDIR="$FSLDIR/bin"
+
+# Convert MELODIC movement regressors to .par to use with PyFIX
+if [ -f ${concatfmrihp}.ica/mc/prefiltered_func_data_mcf_conf_hp.nii.gz ] ; then
+  fslmeants -i ${concatfmrihp}.ica/mc/prefiltered_func_data_mcf_conf_hp.nii.gz -o ${concatfmrihp}.ica/mc/prefiltered_func_data_mcf.par --showall
+  # Strip header lines included as part of '--showall' flag
+  nVols=$($FSLDIR/bin/fslnvols ${concatfmrihp}.ica/mc/prefiltered_func_data_mcf_conf_hp.nii.gz)
+  # Execute tail in a subshell, so we can successfully overwrite file with same name
+  echo "$(tail -n ${nVols} ${concatfmrihp}.ica/mc/prefiltered_func_data_mcf.par | sed 's/  */ /g' | sed 's/^ //g' | cut -d " " -f1-6)" > ${concatfmrihp}.ica/mc/prefiltered_func_data_mcf.par
+fi
 #
 # # Changes to handle user specified training data file
 # if [[ "${TrainingData}" != "" ]]; then

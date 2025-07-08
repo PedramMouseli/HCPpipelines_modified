@@ -6,7 +6,10 @@ This is a modified version of the [HCP pipelines][HCPpipelines]. Some of the cha
 * FSL FLIRT and FNIRT were replaced with [ANTs][ants] for the linear and non-linear registration. 
 * ANTs transformations converted to the FSL format using [c3d_affine_tool][c3d_affine] and [Workbench][wb].
 * Option added for excluding volumes from the beginning and end of the fMRI time series in the fMRI volume processing step.
-* [TODO] option for toggling the use of the INV2 image.
+* Option added to PreFreeSurfer step for switching between the original and alternative T1w image for registration.
+* The older version of ICAFIX is replaced with PyFIX.
+* Movement regressor plots will be generated for each task in in their ICA folder.
+* Added the IcaFixMelodicOnlyProcessingBatch.sh script to run ICAFIX only for the melodic output when we want to train our own model and use it for ICAFIX classification and cleaning.
 
 # HCP Pipelines 
 

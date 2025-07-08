@@ -26,7 +26,7 @@ opts_SetScriptDescription "Tool for non-linearly registering T1w and T2w to MNI 
 
 opts_AddMandatory '--t1' 'T1wImage' 'image' 't1w image'
 
-opts_AddMandatory '--t1mp2rage' 'T1wImageMp2rage' 'image' 't1w_mp2rage image'
+opts_AddMandatory '--t1Alt' 'T1wImageAlt' 'image' 't1w_mp2rage image'
 
 opts_AddMandatory '--t1rest' 'T1wRestore' 'image' 'bias corrected t1w image'
 
@@ -69,6 +69,8 @@ opts_AddOptional '--ref2mmmask' 'Reference2mmMask' 'mask' 'reference 2mm brain m
 
 opts_AddOptional '--fnirtconfig' 'FNIRTConfig' 'file' 'FNIRT configuration file' "${HCPPIPEDIR_Config}/T1_2_MNI152_2mm.cnf"
 
+opts_AddOptional '--regfrom' 'RegFrom' 'string' 'which image to use for registration, can be "input" or "alt". Default is "input".' "input"
+
 opts_ParseArguments "$@"
 
 if ((pipedirguessed))
@@ -103,17 +105,22 @@ echo " " >> $WD/xfms/log.txt
 
 ########################################## DO WORK ##########################################
 
+# Set up registration image
+RegImage=""
+if [ "${RegFrom}" = "input" ] ; then
+	RegImage="${T1wRestore}"
+elif [ "${RegFrom}" = "alt" ] ; then
+	RegImage="${T1wImageAlt}"
+else
+	log_Err_Abort "Invalid value for --regfrom: ${RegFrom}. Should be 'input' or 'alt'."
+fi
+
 # Linear then non-linear registration to MNI
 verbose_echo " --> Linear then non-linear registration to MNI"
-# ${FSLDIR}/bin/flirt -interp spline -dof 12 -in ${T1wRestoreBrain} -ref ${ReferenceBrain} -omat ${WD}/xfms/acpc2MNILinear.mat -out ${WD}/xfms/${T1wRestoreBrainBasename}_to_MNILinear
-# ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "${T1wImageMp2rage}_bet.nii.gz" -ref ${ReferenceBrain} -omat ${WD}/xfms/acpc2MNILinear.mat -out ${WD}/xfms/${T1wRestoreBrainBasename}_to_MNILinear
 
-# ${FSLDIR}/bin/fnirt --in=${T1wRestore} --ref=${Reference2mm} --aff=${WD}/xfms/acpc2MNILinear.mat --refmask=${Reference2mmMask} --fout=${OutputTransform} --jout=${WD}/xfms/NonlinearRegJacobians.nii.gz --refout=${WD}/xfms/IntensityModulatedT1.nii.gz --iout=${WD}/xfms/2mmReg.nii.gz --logout=${WD}/xfms/NonlinearReg.txt --intout=${WD}/xfms/NonlinearIntensities.nii.gz --cout=${WD}/xfms/NonlinearReg.nii.gz --config=${FNIRTConfig}
-# ${FSLDIR}/bin/fnirt --in=${T1wImageMp2rage} --ref=${Reference2mm} --aff=${WD}/xfms/acpc2MNILinear.mat --refmask=${Reference2mmMask} --fout=${OutputTransform} --jout=${WD}/xfms/NonlinearRegJacobians.nii.gz --refout=${WD}/xfms/IntensityModulatedT1.nii.gz --iout=${WD}/xfms/2mmReg.nii.gz --logout=${WD}/xfms/NonlinearReg.txt --intout=${WD}/xfms/NonlinearIntensities.nii.gz --cout=${WD}/xfms/NonlinearReg.nii.gz --config=${FNIRTConfig}
-
-python "${HCPPIPEDIR}/ANTs/antsReg.py" "${T1wImageMp2rage}.nii.gz" "$Reference" "${WD}/xfms/ants_"
+python "${HCPPIPEDIR}/ANTs/antsReg.py" "${RegImage}.nii.gz" "$Reference" "${WD}/xfms/ants_"
 # Convert ANTs warp to FSL
-c3d_affine_tool -ref "$Reference" -src "${T1wImageMp2rage}.nii.gz" -itk "${WD}/xfms/ants_0GenericAffine.mat" -ras2fsl -o ${WD}/xfms/acpc2MNILinear.mat
+c3d_affine_tool -ref "$Reference" -src "${RegImage}.nii.gz" -itk "${WD}/xfms/ants_0GenericAffine.mat" -ras2fsl -o ${WD}/xfms/acpc2MNILinear.mat
 $CARET7DIR/wb_command -convert-warpfield -from-itk "${WD}/xfms/ants_1Warp.nii.gz" -to-fnirt "${WD}/xfms/ants_fnirt.nii.gz" "$Reference"
 ${FSLDIR}/bin/convertwarp --relout --ref="$Reference2mm" --premat=${WD}/xfms/acpc2MNILinear.mat --warp1="${WD}/xfms/ants_fnirt.nii.gz" --out=${OutputTransform}
 
@@ -134,8 +141,6 @@ verbose_echo " --> Generarting T1w set of warped outputs"
 ${FSLDIR}/bin/applywarp --rel --interp=spline -i ${T1wImage} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImage}
 ${FSLDIR}/bin/applywarp --rel --interp=spline -i ${T1wRestore} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestore}
 /Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${OutputT1wImageRestore}.nii.gz" -o "${OutputT1wImageRestoreBrain}.nii.gz" --no-csf
-# ${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T1wRestoreBrain} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestoreBrain}
-# ${FSLDIR}/bin/fslmaths ${OutputT1wImageRestore} -mas ${OutputT1wImageRestoreBrain} ${OutputT1wImageRestoreBrain}
 
 # T2w set of warped outputs (brain/whole-head + restored/orig)
 if [ ! "${T2wImage}" = "NONE" ] ; then
@@ -143,8 +148,7 @@ if [ ! "${T2wImage}" = "NONE" ] ; then
   ${FSLDIR}/bin/applywarp --rel --interp=spline -i ${T2wImage} -r ${Reference} -w ${OutputTransform} -o ${OutputT2wImage}
   ${FSLDIR}/bin/applywarp --rel --interp=spline -i ${T2wRestore} -r ${Reference} -w ${OutputTransform} -o ${OutputT2wImageRestore}
   /Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${OutputT2wImageRestore}.nii.gz" -o "${OutputT2wImageRestoreBrain}.nii.gz" --no-csf
-  # ${FSLDIR}/bin/applywarp --rel --interp=nn -i ${T2wRestoreBrain} -r ${Reference} -w ${OutputTransform} -o ${OutputT2wImageRestoreBrain}
-  # ${FSLDIR}/bin/fslmaths ${OutputT2wImageRestore} -mas ${OutputT2wImageRestoreBrain} ${OutputT2wImageRestoreBrain}
+
 else
   verbose_echo " ... skipping T2w processing"
 fi

@@ -45,6 +45,10 @@ opts_AddOptional '--ref2mmmask' 'Reference2mmMask' 'mask' 'reference 2mm brain m
 
 opts_AddOptional '--fnirtconfig' 'FNIRTConfig' 'file' 'FNIRT configuration file' "$FSLDIR/etc/flirtsch/T1_2_MNI152_2mm.cnf"
 
+opts_AddOptional '--regfrom' 'RegFrom' 'string' 'which image to use for registration, can be "input" or "alt". Default is "input".' "input"
+
+opts_AddOptional '--in_alt' 'Input_alt' 'string' 'Alternative image used for registration' ""
+
 opts_ParseArguments "$@"
 
 if ((pipedirguessed))
@@ -73,12 +77,35 @@ log_Check_Env_Var HCPPIPEDIR_Templates
 BaseName=`${FSLDIR}/bin/remove_ext $Input`;
 BaseName=`basename $BaseName`;
 
+# Determine which image to use for registration
+Input_alt="${Input}_mp2rage"
+InputForReg=""
+if [ "${Modality}" = "T1w" ] ; then
+	InputForReg="${Input_alt}"
+else
+	InputForReg="${Input}"
+fi
+
+if [ "${RegFrom}" = "input" ] ; then
+	InputForReg="${Input}"
+elif [ "${RegFrom}" = "alt" ] ; then
+	if [ "${Modality}" = "T1w" ] ; then
+		InputForReg="${Input_alt}"
+	elif [ "${Modality}" != "T1w" ] ; then
+		InputForReg="${Input}"
+	fi
+
+elif [ -n "${RegFrom}" ] ; then
+	log_Err_Abort "Invalid value for --regfrom: ${RegFrom}. Should be 'input' or 'alt'."
+fi
+
 verbose_echo "  "
 verbose_red_echo " ===> Running FNIRT based brain extraction"
 verbose_echo "  "
 verbose_echo "  Parameters"
 verbose_echo "  WD:                         $WD"
 verbose_echo "  Input:                      $Input"
+verbose_echo "  InputForReg:                $InputForReg"
 verbose_echo "  Reference:                  $Reference"
 verbose_echo "  ReferenceMask:              $ReferenceMask"
 verbose_echo "  Reference2mm:               $Reference2mm"
@@ -104,23 +131,15 @@ echo " " >> $WD/log.txt
 # BET (StbthStrip)
 ReferenceBrain="${HCPPIPEDIR_Templates}/MNI152_T1_0.7mm_brain.nii.gz"
 Reference2mmBrain="${HCPPIPEDIR_Templates}/MNI152_T1_2mm_brain.nii.gz"
-Input_mp2rage="${Input}_mp2rage"
 
 /Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${Input}.nii.gz" -o "${OutputBrainExtractedImage}.nii.gz" -m "${OutputBrainMask}.nii.gz" --no-csf
 if [ $Modality = T1w ] ; then
-  # /Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${Input_mp2rage}.nii.gz" -o "${Input_mp2rage}_bet.nii.gz" -m "${Input_mp2rage}_bet_mask.nii.gz" -b 0
-  # Register to 2mm reference image (linear then non-linear)
-  # verbose_echo " ... linear registration to 2mm reference"
-  # ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "$Input" -ref "$Reference" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch
-  # ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "${Input_mp2rage}_bet.nii.gz" -ref "$ReferenceBrain" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch
 
   verbose_echo " ... non-linear registration to 2mm reference"
-  # ${FSLDIR}/bin/fnirt --in="$Input" --ref="$Reference2mm" --aff="$WD"/roughlin.mat --refmask="$Reference2mmMask" --fout="$WD"/str2standard.nii.gz --jout="$WD"/NonlinearRegJacobians.nii.gz --refout="$WD"/IntensityModulatedT1.nii.gz --iout="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
-  # ${FSLDIR}/bin/fnirt --in="$Input_mp2rage" --ref="$Reference2mm" --aff="$WD"/roughlin.mat --refmask="$Reference2mmMask" --fout="$WD"/str2standard.nii.gz --jout="$WD"/NonlinearRegJacobians.nii.gz --refout="$WD"/IntensityModulatedT1.nii.gz --iout="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
   # run ANTs registration in python
-  python "${HCPPIPEDIR}/ANTs/antsReg.py" "${Input_mp2rage}.nii.gz" "$Reference" "${WD}/${BaseName}_"
+  python "${HCPPIPEDIR}/ANTs/antsReg.py" "${InputForReg}.nii.gz" "$Reference" "${WD}/${BaseName}_"
   # Convert ANTs warp to FSL
-  c3d_affine_tool -ref "$Reference" -src "${Input_mp2rage}.nii.gz" -itk "${WD}/${BaseName}_0GenericAffine.mat" -ras2fsl -o "$WD"/roughlin.mat
+  c3d_affine_tool -ref "$Reference" -src "${InputForReg}.nii.gz" -itk "${WD}/${BaseName}_0GenericAffine.mat" -ras2fsl -o "$WD"/roughlin.mat
   $CARET7DIR/wb_command -convert-warpfield -from-itk "${WD}/${BaseName}_1Warp.nii.gz" -to-fnirt "${WD}/${BaseName}_fnirt.nii.gz" "$Reference"
   ${FSLDIR}/bin/convertwarp --relout --ref="$Reference2mm" --premat="$WD"/roughlin.mat --warp1="${WD}/${BaseName}_fnirt.nii.gz" --out="$WD"/str2standard.nii.gz
   # Create the jacobian matrix from warp
@@ -131,23 +150,17 @@ if [ $Modality = T1w ] ; then
 
   # Overwrite the image output from FNIRT with a spline interpolated highres version
   verbose_echo " ... creating spline interpolated hires version"
-  # ${FSLDIR}/bin/applywarp --rel --interp=spline --in="$Input" --ref="$Reference" -w "$WD"/str2standard.nii.gz --out="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz
   ${FSLDIR}/bin/applywarp --rel --interp=spline --in="$Input" --ref="$Reference" -w "$WD"/str2standard.nii.gz --out="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz
   # Overwrite the linear registeration with the original image
-  # ${FSLDIR}/bin/flirt -in "${Input}.nii.gz" -applyxfm -init "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -paddingsize 0.0 -interp spline -ref "$ReferenceBrain"
   ${FSLDIR}/bin/flirt -in "${Input}.nii.gz" -applyxfm -init "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -paddingsize 0.0 -interp spline -ref "$ReferenceBrain"
 
 else
-  verbose_echo " ... linear registration to 2mm reference"
-  # ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "$Input" -ref "$Reference" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch
-  # ${FSLDIR}/bin/flirt -interp spline -dof 12 -in "$OutputBrainExtractedImage" -ref "$Reference" -omat "$WD"/roughlin.mat -out "$WD"/"$BaseName"_to_MNI_roughlin.nii.gz -nosearch
 
   verbose_echo " ... non-linear registration to 2mm reference"
-  # ${FSLDIR}/bin/fnirt --in="$Input" --ref="$Reference2mm" --aff="$WD"/roughlin.mat --refmask="$Reference2mmMask" --fout="$WD"/str2standard.nii.gz --jout="$WD"/NonlinearRegJacobians.nii.gz --refout="$WD"/IntensityModulatedT1.nii.gz --iout="$WD"/"$BaseName"_to_MNI_nonlin.nii.gz --logout="$WD"/NonlinearReg.txt --intout="$WD"/NonlinearIntensities.nii.gz --cout="$WD"/NonlinearReg.nii.gz --config="$FNIRTConfig"
   # run ANTs registration in python
-  python "${HCPPIPEDIR}/ANTs/antsReg.py" "${Input}.nii.gz" "$Reference" "${WD}/${BaseName}_"
+  python "${HCPPIPEDIR}/ANTs/antsReg.py" "${InputForReg}.nii.gz" "$Reference" "${WD}/${BaseName}_"
   # Convert ANTs warp to FSL
-  c3d_affine_tool -ref "$Reference" -src "${Input}.nii.gz" -itk "${WD}/${BaseName}_0GenericAffine.mat" -ras2fsl -o "$WD"/roughlin.mat
+  c3d_affine_tool -ref "$Reference" -src "${InputForReg}.nii.gz" -itk "${WD}/${BaseName}_0GenericAffine.mat" -ras2fsl -o "$WD"/roughlin.mat
   $CARET7DIR/wb_command -convert-warpfield -from-itk "${WD}/${BaseName}_1Warp.nii.gz" -to-fnirt "${WD}/${BaseName}_fnirt.nii.gz" "$Reference"
   ${FSLDIR}/bin/convertwarp --relout --ref="$Reference2mm" --premat="$WD"/roughlin.mat --warp1="${WD}/${BaseName}_fnirt.nii.gz" --out="$WD"/str2standard.nii.gz
   # Create the jacobian matrix from warp
@@ -167,11 +180,6 @@ fi
 # Input and reference spaces are the same, using 2mm reference to save time
 verbose_echo " ... computing inverse warp"
 ${FSLDIR}/bin/invwarp --ref="$Reference2mm" -w "$WD"/str2standard.nii.gz -o "$WD"/standard2str.nii.gz
-
-# verbose_echo " ... applying inverse warp"
-# ${FSLDIR}/bin/applywarp --rel --interp=nn --in="$ReferenceMask" --ref="$Input" -w "$WD"/standard2str.nii.gz -o "$OutputBrainMask"
-# verbose_echo " ... creating mask"
-# ${FSLDIR}/bin/fslmaths "$Input" -mas "$OutputBrainMask" "$OutputBrainExtractedImage"
 
 verbose_green_echo "---> Finished BrainExtraction FNIRT"
 

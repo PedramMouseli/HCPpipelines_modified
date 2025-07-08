@@ -30,7 +30,12 @@ export HCPCIFTIRWDIR="$HCPPIPEDIR"/global/matlab/cifti-matlab
 
 ## Set up FSL (if not already done so in the running environment)
 ## Uncomment the following 2 lines (remove the leading #) and correct the FSLDIR setting for your setup
-export FSLDIR=/usr/local/fsl
+# Check if primary FSL directory exists, otherwise use alternative path
+if [ -d "/Users/moayedilab/fsl" ]; then
+    export FSLDIR=/Users/moayedilab/fsl
+else
+    export FSLDIR=/usr/local/fsl
+fi
 source "$FSLDIR/etc/fslconf/fsl.sh"
 
 ## Let FreeSurfer explicitly know what version of FSL to use (this shouldn't need changing)

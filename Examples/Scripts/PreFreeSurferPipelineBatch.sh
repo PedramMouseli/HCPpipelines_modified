@@ -215,8 +215,10 @@ main()
 		numT1ws=0
 		for folder in "${StudyFolder}/${Subject}/"anat; do
 			folderbase=$(basename "$folder")
-			T1wInputImages+="$folder/${Subject}_T1w.nii.gz@"
-			numT1ws=$((numT1ws + 1))
+			if [ -f "$folder/${Subject}_T1w.nii.gz" ]; then
+				T1wInputImages+="$folder/${Subject}_T1w.nii.gz@"
+				numT1ws=$((numT1ws + 1))
+			fi
 		done
 		echo "Found ${numT1ws} T1w Images for subject ${Subject}"
 
@@ -226,21 +228,16 @@ main()
 		numT2ws=0
 		for folder in "${StudyFolder}/${Subject}/"anat; do
 			folderbase=$(basename "$folder")
-			T2wInputImages+="$folder/${Subject}_T2w.nii.gz@"
-			numT2ws=$((numT2ws + 1))
+			if [ -f "$folder/${Subject}_T2w.nii.gz" ]; then
+				T2wInputImages+="$folder/${Subject}_T2w.nii.gz@"
+				numT2ws=$((numT2ws + 1))
+			fi
 		done
+		# Set T2wInputImages to "NONE" if no T2w images were found
+		if [ -z "$T2wInputImages" ]; then
+			T2wInputImages="NONE"
+		fi
 		echo "Found ${numT2ws} T2w Images for subject ${Subject}"
-
-		# Detect Number of alternative T1w Images and build list of full paths to
-		# T1w images
-		# T1wAltInputImages=""
-		# numT1wAlts=0
-		# for t1wAltImg in "${StudyFolder}/${Subject}/anat/${Subject}_T1w_mp2rage"*; do
-		# 	imagebase=$(basename "$t1wAltImg")
-		# 	T1wAltInputImages+="${StudyFolder}/${Subject}/anat/$imagebase@"
-		# 	numT1wAlts=$((numT1wAlts + 1))
-		# done
-		# echo "Found ${numT1wAlts} alternative T1w Images for subject ${Subject}"
 
 		# Readout Distortion Correction:
 		#
@@ -293,29 +290,35 @@ main()
 		# AvgrdcSTRING="SiemensFieldMap"
 		AvgrdcSTRING="NONE"
 
-		# ----------------------------------------------------------------------
-		# Variables related to using Siemens specific Gradient Echo Field Maps
-		# ----------------------------------------------------------------------
+		if [ "${AvgrdcSTRING}" != "NONE" ]; then
+			# ----------------------------------------------------------------------
+			# Variables related to using Siemens specific Gradient Echo Field Maps
+			# ----------------------------------------------------------------------
 
-		# The MagnitudeInputName variable should be set to a 4D magitude volume
-		# with two 3D timepoints or "NONE" if not used
-		MagnitudeInputName="${StudyFolder}/${Subject}/fmap/${Subject}_magnitude2.nii.gz"
+			# The MagnitudeInputName variable should be set to a 4D magitude volume
+			# with two 3D timepoints or "NONE" if not used
+			MagnitudeInputName="${StudyFolder}/${Subject}/fmap/${Subject}_magnitude2.nii.gz"
 
-		# The PhaseInputName variable should be set to a 3D phase difference
-		# volume or "NONE" if not used
-		PhaseInputName="${StudyFolder}/${Subject}/fmap/${Subject}_phasediff.nii.gz"
+			# The PhaseInputName variable should be set to a 3D phase difference
+			# volume or "NONE" if not used
+			PhaseInputName="${StudyFolder}/${Subject}/fmap/${Subject}_phasediff.nii.gz"
 
-		# The DeltaTE (echo time difference) of the fieldmap.  For HCP Young Adult data, this variable would typically be 2.46ms for 3T scans, 1.02ms for 7T
-		# scans, or "NONE" if not using readout distortion correction
-		# DeltaTE="2.46"
+			# The DeltaTE (echo time difference) of the fieldmap.  For HCP Young Adult data, this variable would typically be 2.46ms for 3T scans, 1.02ms for 7T
+			# scans, or "NONE" if not using readout distortion correction
+			# DeltaTE="2.46"
 
-		# calculate DeltaTE for every participant
-		EchoTime1=$( jq .EchoTime "${StudyFolder}/${Subject}/fmap/${Subject}_magnitude1.json" )
-		EchoTime2=$( jq .EchoTime "${StudyFolder}/${Subject}/fmap/${Subject}_magnitude2.json" )
-		Delta=$(echo $EchoTime2 - $EchoTime1 | bc)
-		Delta_sec=$(echo "scale=4; $Delta*1000" | bc)
-		DeltaTE=${Delta_sec#-}
-		# DeltaTE="NONE"
+			# calculate DeltaTE for every participant
+			EchoTime1=$( jq .EchoTime "${StudyFolder}/${Subject}/fmap/${Subject}_magnitude1.json" )
+			EchoTime2=$( jq .EchoTime "${StudyFolder}/${Subject}/fmap/${Subject}_magnitude2.json" )
+			Delta=$(echo $EchoTime2 - $EchoTime1 | bc)
+			Delta_sec=$(echo "scale=4; $Delta*1000" | bc)
+			DeltaTE=${Delta_sec#-}
+			# DeltaTE="NONE"
+		else
+			MagnitudeInputName="NONE"
+			PhaseInputName="NONE"
+			DeltaTE="NONE"
+		fi
 
 		# ----------------------------------------------------------------------
 		# Variables related to using Spin Echo Field Maps
@@ -486,6 +489,11 @@ main()
 		# FNIRT 2mm T1w Config
 		FNIRTConfig="${HCPPIPEDIR_Config}/T1_2_MNI152_2mm.cnf"
 
+		# RegFrom: which image to use for registration, can be "input" or "alt".
+		# Default is "input". An alternative image can be used for T1w registration when using the original T1w image is suboptimal. Then, the transform is applied to the original T1w image.
+		RegFrom="input"
+		AltImageIdentifier="mp2rage"
+
 		# Location of Coeffs file or "NONE" to skip
 		# GradientDistortionCoeffs="${HCPPIPEDIR_Config}/coeff_SC72C_Skyra.grad"
 
@@ -508,7 +516,6 @@ main()
 			--path="$StudyFolder" \
 			--subject="$Subject" \
 			--t1="$T1wInputImages" \
-			--AltT1="$T1wAltInputImages" \
 			--t2="$T2wInputImages" \
 			--t1template="$T1wTemplate" \
 			--t1templatebrain="$T1wTemplateBrain" \
@@ -520,6 +527,8 @@ main()
 			--template2mmmask="$Template2mmMask" \
 			--brainsize="$BrainSize" \
 			--fnirtconfig="$FNIRTConfig" \
+			--regfrom="$RegFrom" \
+			--altimageidentifier="$AltImageIdentifier" \
 			--fmapmag="$MagnitudeInputName" \
 			--fmapphase="$PhaseInputName" \
 			--fmapcombined="$GEB0InputName" \

@@ -19,7 +19,7 @@ get_batch_options() {
                 command_line_specified_study_folder=${argument#*=}
                 index=$(( index + 1 ))
                 ;;
-            --Subjlist=*)
+            --Subject=*)
                 command_line_specified_subj=${argument#*=}
                 index=$(( index + 1 ))
                 ;;
@@ -27,12 +27,12 @@ get_batch_options() {
                 command_line_specified_run_local="TRUE"
                 index=$(( index + 1 ))
                 ;;
-	    *)
-		echo ""
-		echo "ERROR: Unrecognized Option: ${argument}"
-		echo ""
-		exit 1
-		;;
+            *)
+                echo ""
+                echo "ERROR: Unrecognized Option: ${argument}"
+                echo ""
+                exit 1
+                ;;
         esac
     done
 }
@@ -41,7 +41,7 @@ get_batch_options "$@"
 
 StudyFolder="${HOME}/projects/Pipelines_ExampleData" #Location of Subject folders (named by subjectID)
 Subjlist="100307 100610" #Space delimited list of subject IDs
-EnvironmentScript="${HOME}/projects/Pipelines/Examples/Scripts/SetUpHCPPipeline.sh" #Pipeline environment script
+EnvironmentScript="${HOME}/Library/CloudStorage/OneDrive-UniversityofToronto/PhD/codes/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts/SetUpHCPPipeline.sh" #Pipeline environment script
 
 if [ -n "${command_line_specified_study_folder}" ]; then
     StudyFolder="${command_line_specified_study_folder}"
@@ -75,10 +75,25 @@ QUEUE=""
 
 # List of fMRI runs
 # If running on output from multi-run FIX, use ConcatName(s) as value for fMRINames (space delimited)
-fMRINames="rfMRI_REST"
+# fMRINames="rfMRI_REST"
 
-HighPass="0"
+TaskList_general=()
+TaskList_general+=(clench)
+TaskList_general+=(rest)
+TaskList_general+=(localizer)
+TaskList_general+=(stress)
+
+
+# for Subject in $Subjlist ; do
+#     echo $Subject
+#     for task in "${fMRINames[@]}" ; do
+#         echo $task
+#     done
+# done
+HighPass="125"
 ReUseHighPass="YES" #Use YES if running on output from multi-run FIX, otherwise use NO
+
+MatlabPath="/Applications/MATLAB_R2024b.app/bin/matlab"
 
 DualScene=${HCPPIPEDIR}/ICAFIX/PostFixScenes/ICA_Classification_DualScreenTemplate.scene
 SingleScene=${HCPPIPEDIR}/ICAFIX/PostFixScenes/ICA_Classification_SingleScreenTemplate.scene
@@ -86,8 +101,19 @@ SingleScene=${HCPPIPEDIR}/ICAFIX/PostFixScenes/ICA_Classification_SingleScreenTe
 MatlabMode="1" #Mode=0 compiled Matlab, Mode=1 interpreted Matlab, Mode=2 octave
 
 for Subject in $Subjlist ; do
-    for fMRIName in ${fMRINames} ; do
+    ## find the task list
+    fMRINames=()
+    for task in "${TaskList_general[@]}" ; do
+        # echo $task
+        if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
+        fMRINames+=("${task}_ICA")
+        echo "${task} added to the task list"
+        fi
+    done
+
+    for fMRIName in "${fMRINames[@]}" ; do
         echo "    ${Subject}"
+        echo "${fMRIName} task processing"
 
         if [[ "${command_line_specified_run_local}" == "TRUE" || "$QUEUE" == "" ]] ; then
             echo "About to locally run ${HCPPIPEDIR}/ICAFIX/PostFix.sh"
@@ -102,6 +128,7 @@ for Subject in $Subjlist ; do
             --subject="$Subject" \
             --fmri-name="$fMRIName" \
             --high-pass="$HighPass" \
+            --matlab-path="$MatlabPath" \
             --template-scene-dual-screen="$DualScene" \
             --template-scene-single-screen="$SingleScene" \
             --reuse-high-pass="$ReUseHighPass" \

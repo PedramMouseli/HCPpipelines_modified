@@ -54,6 +54,7 @@ opts_AddOptional '--matlab-run-mode' 'MatlabRunMode' '0, 1, or 2' "defaults to $
 0 = compiled MATLAB
 1 = interpreted MATLAB
 2 = Octave" "$g_matlab_default_mode"
+opts_AddOptional '--matlab-path' 'MatlabPath' 'string' "path to MATLAB"
 opts_ParseArguments "$@"
 
 if ((pipedirguessed))
@@ -78,11 +79,11 @@ opts_ShowValues
 # ------------------------------------------------------------------------------
 # Naming Conventions and other variables
 Caret7_Command=${CARET7DIR}/wb_command
-AtlasFolder="${StudyFolder}/${Subject}/MNINonLinear"
+AtlasFolder="${StudyFolder}/${Subject}/processed/MNINonLinear"
 DownSampleFolder="${AtlasFolder}/fsaverage_LR${LowResMesh}k"
 NativeFolder="${AtlasFolder}/Native"
 ResultsFolder="${AtlasFolder}/Results/${OutputfMRIName}"
-T1wFolder="${StudyFolder}/${Subject}/T1w"
+T1wFolder="${StudyFolder}/${Subject}/processed/T1w"
 DownSampleT1wFolder="${T1wFolder}/fsaverage_LR${LowResMesh}k"
 NativeT1wFolder="${T1wFolder}/Native"
 
@@ -279,7 +280,7 @@ while [ ${i} -le ${NumIterations} ] ; do
 				# Use interpreted MATLAB or Octave
 				if [[ ${MatlabRunMode} == "1" ]]
 				then
-				    interpreter=(matlab -nojvm -nodisplay -nosplash)
+				    interpreter=($MatlabPath -nojvm -nodisplay -nosplash)
 				else
 				    interpreter=(octave-cli -q --no-window-system)
 				fi
@@ -373,7 +374,7 @@ while [ ${i} -le ${NumIterations} ] ; do
 				# Use interpreted MATLAB or Octave
 				if [[ ${MatlabRunMode} == "1" ]]
 				then
-				    interpreter=(matlab -nojvm -nodisplay -nosplash)
+				    interpreter=($MatlabPath -nojvm -nodisplay -nosplash)
 				else
 				    interpreter=(octave-cli -q --no-window-system)
 				fi
@@ -794,7 +795,7 @@ case ${MatlabRunMode} in
 		# Use interpreted MATLAB or Octave
 		if [[ ${MatlabRunMode} == "1" ]]
 		then
-		    interpreter=(matlab -nojvm -nodisplay -nosplash)
+		    interpreter=($MatlabPath -nojvm -nodisplay -nosplash)
 		else
 		    interpreter=(octave-cli -q --no-window-system)
 		fi
@@ -863,7 +864,7 @@ case ${MatlabRunMode} in
 		# Use interpreted MATLAB or Octave
 		if [[ ${MatlabRunMode} == "1" ]]
 		then
-		    interpreter=(matlab -nojvm -nodisplay -nosplash)
+		    interpreter=($MatlabPath -nojvm -nodisplay -nosplash)
 		else
 		    interpreter=(octave-cli -q --no-window-system)
 		fi

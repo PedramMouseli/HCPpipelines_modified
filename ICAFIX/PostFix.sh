@@ -61,6 +61,8 @@ opts_AddMandatory '--fmri-name' 'fMRIName' 'string' "In the case of applying Pos
 
 opts_AddMandatory '--high-pass' 'HighPass' 'number' "high-pass filter used in ICA+FIX"
 
+opts_AddOptional '--matlab-path' 'MatlabPath' 'string' "path to MATLAB"
+
 opts_AddMandatory '--template-scene-dual-screen' 'TemplateSceneDualScreen' 'path' "template scene file"
 
 opts_AddMandatory '--template-scene-single-screen' 'TemplateSceneSingleScreen' 'path' "template scene file"
@@ -181,7 +183,7 @@ else
 fi
 
 # Naming Conventions and other variables
-AtlasFolder="${StudyFolder}/${Subject}/MNINonLinear"
+AtlasFolder="${StudyFolder}/${Subject}/processed/MNINonLinear"
 log_Msg "AtlasFolder: ${AtlasFolder}"
 
 ResultsFolder="${AtlasFolder}/Results/${fMRIName}"
@@ -229,8 +231,16 @@ log_Msg "ICAs: ${ICAs}"
 ICAdtseries="${ICAFolder}/melodic_oIC.dtseries.nii"  # Output of prepareICAs
 log_Msg "ICAdtseries: ${ICAdtseries}"
 
-NoiseICAs="${FIXFolder}/.fix"  # Input to prepareICAs
+# NoiseICAs="${FIXFolder}/.fix"  # Input to prepareICAs
+NoiseICAs="${FIXFolder}/noise.txt"
 log_Msg "NoiseICAs: ${NoiseICAs}"
+
+# Make the noise file
+ICALabels=$(ls ${FIXFolder}/fix4melview*.txt | head -n 1)
+# Extract the noise components
+last_line=$(tail -n 1 "$ICALabels")
+trimmed_line=$(echo "$last_line" | cut -c2- | rev | cut -c2- | rev)
+echo "$trimmed_line" > "$NoiseICAs"
 
 Noise="${FIXFolder}/Noise.txt"  # Output of prepareICAs
 log_Msg "Noise: ${Noise}"
@@ -282,7 +292,7 @@ case ${MatlabRunMode} in
 	1 | 2)
 		# Use interpreted MATLAB or Octave
 		if [[ ${MatlabRunMode} == '1' ]]; then
-			interpreter=(matlab -nojvm -nodisplay -nosplash)
+			interpreter=($MatlabPath -nojvm -nodisplay -nosplash)
 		else
 			interpreter=(octave -q --no-window-system)
 		fi
@@ -347,14 +357,14 @@ fi
 log_Msg "Making dual screen scene"
 sceneFileDual=${ResultsFolder}/${Subject}_${fMRIName}${hpStr}_ICA_Classification_dualscreen.scene
 # MPH: Overwrite file, if it already exists
-cat "${TemplateSceneDualScreen}" | sed s/SubjectID/${Subject}/g | sed s/fMRIName/${fMRIName}/g | sed s@StudyFolder@"../../../.."@g | sed s@_hpHighPass@${hpStr}@g >| "${sceneFileDual}"
+cat "${TemplateSceneDualScreen}" | sed "s@SubjectID/MNINonLinear@${Subject}/processed/MNINonLinear@g" | sed "s@SubjectID@${Subject}@g" | sed s/fMRIName/${fMRIName}/g | sed s@StudyFolder@"../../../../.."@g | sed s@_hpHighPass@${hpStr}@g >| "${sceneFileDual}"
 #TSC: run it through workbench to simplify excessive ".."s in paths
 "$CARET7DIR"/wb_command -scene-file-relocate "$sceneFileDual" "$sceneFileDual"
 
 log_Msg "Making single screen scene"
 sceneFileSingle=${ResultsFolder}/${Subject}_${fMRIName}${hpStr}_ICA_Classification_singlescreen.scene
 # MPH: Overwrite file, if it already exists
-cat "${TemplateSceneSingleScreen}" | sed s/SubjectID/${Subject}/g | sed s/fMRIName/${fMRIName}/g | sed s@StudyFolder@"../../../.."@g | sed s@_hpHighPass@${hpStr}@g >| "${sceneFileSingle}"
+cat "${TemplateSceneSingleScreen}" | sed "s@SubjectID/MNINonLinear@${Subject}/processed/MNINonLinear@g" | sed "s@SubjectID@${Subject}@g" | sed s/fMRIName/${fMRIName}/g | sed s@StudyFolder@"../../../../.."@g | sed s@_hpHighPass@${hpStr}@g >| "${sceneFileSingle}"
 #TSC: run it through workbench to simplify excessive ".."s in paths
 "$CARET7DIR"/wb_command -scene-file-relocate "$sceneFileSingle" "$sceneFileSingle"
 

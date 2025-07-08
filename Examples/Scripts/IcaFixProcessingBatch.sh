@@ -180,7 +180,7 @@ main() {
 
 	# set whether or not to regress motion parameters (24 regressors)
 	# out of the data as part of FIX (TRUE or FALSE)
-	domot=FALSE
+	domot=TRUE
 
 	# set the training data used in multi-run fix mode
 	MRTrainingData=TMDmodel_PyFIX.pyfix_model

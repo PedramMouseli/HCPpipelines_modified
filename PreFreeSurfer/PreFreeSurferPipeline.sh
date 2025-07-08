@@ -211,6 +211,10 @@ opts_AddMandatory '--brainsize' 'BrainSize' 'size_value' "Brain size estimate in
 
 opts_AddMandatory '--fnirtconfig' 'FNIRTConfig' 'file_path' "FNIRT 2mm T1w Configuration file"
 
+opts_AddOptional '--regfrom' 'RegFrom' 'string' 'which image to use for registration, can be "input" or "alt". Default is "input".' "input"
+
+opts_AddOptional '--altimageidentifier' 'AltImageIdentifier' 'string' 'identifier for alternative image' ""
+
 opts_AddOptional '--fmapmag' 'MagnitudeInputName' 'file_path' "Siemens/Philips/GE HealthCare Gradient Echo Fieldmap magnitude file"
 
 opts_AddOptional '--fmapphase' 'PhaseInputName' 'file_path' "Siemens/Philips Gradient Echo Fieldmap phase file or GE HealthCare Fieldmap in Hertz"
@@ -351,9 +355,10 @@ check_mode_compliance "${ProcessingMode}" "${Compliance}" "${ComplianceMsg}"
 
 # Naming Conventions
 T1wImage="T1w"
+T1wAltImage="T1w_${AltImageIdentifier}"
 T1wFolder="processed/T1w" #Location of T1w images
-T1wAltImage="T1w_mp2rage"
 T2wImage="T2w"
+T2wAltImage=""
 T2wFolder="processed/T2w" #Location of T2w images
 AtlasSpaceFolder="processed/MNINonLinear"
 
@@ -423,28 +428,28 @@ fi
 
 if [ "$CustomBrain" = "NONE" ] ; then
 
-  Modalities="T1w T2w"
+  # Default to only T1w
+  Modalities="T1w"
+  
+  # Add T2w to modalities if T2w images are provided
+  if [ ! "${T2wInputImages}" = "NONE" ]; then
+    Modalities="T1w T2w"
+  fi
 
   for TXw in ${Modalities} ; do
 
-      # set up appropriate input variables
-      # if [ $TXw = AltT1w ] ; then
-      #     TXwInputImages="${T1wAltInputImages}"
-      #     TXwFolder=${T1wFolder}
-      #     TXwImage=${T1wAltImage}
-      #     TXwTemplate=${T1wTemplate}
-      #     TXwTemplate2mm=${T1wTemplate2mm}
-      #     log_Msg "processing Alt image"
       if [ $TXw = T1w ] ; then
           TXwInputImages="${T1wInputImages}"
           TXwFolder=${T1wFolder}
           TXwImage=${T1wImage}
+          TXwImageAlt=${T1wAltImage}
           TXwTemplate=${T1wTemplate}
           TXwTemplate2mm=${T1wTemplate2mm}
       else
           TXwInputImages="${T2wInputImages}"
           TXwFolder=${T2wFolder}
           TXwImage=${T2wImage}
+          TXwImageAlt=${T2wAltImage}
           TXwTemplate=${T2wTemplate}
           TXwTemplate2mm=${T2wTemplate2mm}
           log_Msg "processing T2 image"
@@ -510,14 +515,12 @@ if [ "$CustomBrain" = "NONE" ] ; then
         log_Msg "Not Averaging ${TXw} Images"
         log_Msg "ONLY ONE IMAGE FOUND: COPYING"
         ${RUN} ${FSLDIR}/bin/imcp ${TXwFolder}/${TXwImage}1_gdc ${TXwFolder}/${TXwImage}
-        if [ $TXw = T1w ] ; then
-          # copy the mp2rage folder to the t1w folders
-          cp "${StudyFolder}/${Subject}/anat/${Subject}_T1w_mp2rage.nii.gz" "${TXwFolder}/${TXwImage}_mp2rage.nii.gz"
+        if [ $TXw = T1w ] && [ "$RegFrom" = "alt" ] ; then
+          # copy the alternative image to the T1w folders
+          cp "${StudyFolder}/${Subject}/anat/${Subject}_T1w_${AltImageIdentifier}.nii.gz" "${TXwFolder}/${TXwImageAlt}.nii.gz"  
         fi
       fi
-      # if [ $TXw = T1wAlt ] ; then
-      #   continue
-      # fi
+
       # ACPC align T1w or T2w image to specified MNI Template to create native volume space
       log_Msg "Aligning ${TXw} image to ${TXwTemplate} to create native volume space"
       log_Msg "mkdir -p ${TXwFolder}/ACPCAlignment"
@@ -545,7 +548,9 @@ if [ "$CustomBrain" = "NONE" ] ; then
         --ref2mmmask=${Template2mmMask} \
         --outbrain=${TXwFolder}/${TXwImage}_acpc_brain \
         --outbrainmask=${TXwFolder}/${TXwImage}_acpc_brain_mask \
-        --fnirtconfig=${FNIRTConfig}
+        --fnirtconfig=${FNIRTConfig} \
+        --regfrom=${RegFrom} \
+        --in_alt=${TXwFolder}/${TXwImageAlt}
 
   done
 
@@ -762,7 +767,7 @@ log_Msg "Performing Atlas Registration to MNI152 (FLIRT and FNIRT)"
 ${RUN} ${HCPPIPEDIR_PreFS}/AtlasRegistrationToMNI152_FLIRTandFNIRT.sh \
   --workingdir=${AtlasSpaceFolder} \
   --t1=${T1wFolder}/${T1wImage}_acpc_dc \
-  --t1mp2rage=${T1wFolder}/${T1wImage}_acpc_mp2rage \
+  --t1Alt=${T1wFolder}/${T1wImage}_acpc_${AltImageIdentifier} \
   --t1rest=${T1wFolder}/${T1wImage}_acpc_dc_restore \
   --t1restbrain=${T1wFolder}/${T1wImage}_acpc_dc_restore_brain \
   --t2=${T1wFolder_T2wImageWithPath_acpc_dc} \

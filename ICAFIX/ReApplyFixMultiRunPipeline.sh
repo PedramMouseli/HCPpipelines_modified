@@ -66,6 +66,8 @@ opts_AddOptional '--matlab-run-mode' 'MatlabRunMode' '0, 1, or 2' "defaults to 1
 1 = Use interpreted MATLAB
 2 = Use interpreted Octave" "1"
 
+opts_AddOptional '--matlab-path' 'MatlabPath' 'string' "path to MATLAB"
+
 opts_AddOptional '--motion-regression' 'MotionRegression' 'TRUE or FALSE' "default FALSE" "FALSE"
 
 opts_AddOptional '--delete-intermediates' 'DeleteIntermediates' 'TRUE or FALSE' "whether to delete the concatenated high-pass filtered and non-filtered timeseries files that are prerequisites to FIX cleaning (the concatenated, hpXX_clean timeseries files are preserved for use in downstream scripts), default FALSE" "FALSE"
@@ -173,7 +175,7 @@ have_hand_reclassification()
 	local fMRIName="${3}"
 	local HighPass="${4}"
 
-	[ -e "${StudyFolder}/${Subject}/MNINonLinear/Results/${fMRIName}/${fMRIName}_hp${HighPass}.ica/HandNoise.txt" ]
+	[ -e "${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${fMRIName}/${fMRIName}_hp${HighPass}.ica/HandNoise.txt" ]
 }
 
 # ------------------------------------------------------------------------------
@@ -306,7 +308,7 @@ fixlist=".fix"
 # ConcatName is expected to NOT include path info, or a nifti extension; make sure that is indeed the case
 ConcatNameOnly=$(basename $($FSLDIR/bin/remove_ext $ConcatName))
 # But, then generate the absolute path so we can reuse the code from hcp_fix_multi_run
-ConcatName="${StudyFolder}/${Subject}/MNINonLinear/Results/${ConcatNameOnly}/${ConcatNameOnly}"
+ConcatName="${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${ConcatNameOnly}/${ConcatNameOnly}"
 
 # If we have a hand classification and no regname, reapply fix to the volume as well
 if have_hand_reclassification ${StudyFolder} ${Subject} ${ConcatNameOnly} ${hp}
@@ -387,7 +389,7 @@ if (( regenConcatHP )); then
 		# fmriname is expected to NOT include path info, or a nifti extension; make sure that is indeed the case
 		fmriname=$(basename $($FSLDIR/bin/remove_ext $fmriname))
 		# But, then generate the absolute path so we can reuse the code from hcp_fix_multi_run
-		fmri="${StudyFolder}/${Subject}/MNINonLinear/Results/${fmriname}/${fmriname}"
+		fmri="${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${fmriname}/${fmriname}"
 
 		log_Msg "Top of loop through fmris: fmri: ${fmri}"
 
@@ -478,7 +480,7 @@ if (( regenConcatHP )); then
 			1 | 2)
 				# Use interpreted MATLAB or Octave
 				if [[ ${MatlabRunMode} == "1" ]]; then
-					interpreter=(matlab -nojvm -nodisplay -nosplash)
+					interpreter=($MatlabPath -nojvm -nodisplay -nosplash)
 				else
 					interpreter=(octave-cli -q --no-window-system)
 				fi
@@ -627,8 +629,7 @@ cd ${concatfmrihp}.ica
 # This is the concated volume time series from the 1st pass VN, with requested
 # hp-filtering applied and with the mean VN map multiplied back in
 ${FSLDIR}/bin/imrm filtered_func_data
-if (( DoVol ))
-then
+if (( DoVol )); then
 	if [ `$FSLDIR/bin/imtest ../${concatfmrihp}` != 1 ]; then
 		log_Err_Abort "FILE NOT FOUND: ../${concatfmrihp}"
 	fi
@@ -678,93 +679,113 @@ export FSL_FIX_WBC="${Caret7_Command}"
 # sourcing settings.sh below, we explicitly set FSL_FIX_WBC back to value of ${Caret7_Command}.
 # (This may only be relevant for interpreted matlab/octave modes).
 
-log_Msg "Running fix_3_clean"
+log_Msg "Running fix cleanup"
 
 AlreadyHP="-1"
 
-case ${MatlabRunMode} in
+# case ${MatlabRunMode} in
 
-	# See important WARNING above regarding why ${DoVol} is NOT included as an argument when DoVol=1 !!
+# 	# See important WARNING above regarding why ${DoVol} is NOT included as an argument when DoVol=1 !!
 	
-	0)
-		# Use Compiled Matlab
+# 	0)
+# 		# Use Compiled Matlab
 
-		matlab_exe="${FSL_FIXDIR}/compiled/$(uname -s)/$(uname -m)/run_fix_3_clean.sh"
+# 		matlab_exe="${FSL_FIXDIR}/compiled/$(uname -s)/$(uname -m)/run_fix_3_clean.sh"
 
-		# Do NOT enclose string variables inside an additional single quote because all
-		# variables are already passed into the compiled binary as strings
-		matlab_function_arguments=("${fixlist}" "${aggressive}" "${MotionRegression}" "${AlreadyHP}")
-		if (( ! DoVol )); then
-			matlab_function_arguments+=("${DoVol}")
-		fi
+# 		# Do NOT enclose string variables inside an additional single quote because all
+# 		# variables are already passed into the compiled binary as strings
+# 		matlab_function_arguments=("${fixlist}" "${aggressive}" "${MotionRegression}" "${AlreadyHP}")
+# 		if (( ! DoVol )); then
+# 			matlab_function_arguments+=("${DoVol}")
+# 		fi
 		
-		# fix_3_clean is part of the FIX distribution, which was compiled under its own (separate) MCR.
-		# If ${FSL_FIX_MCR} is already defined in the environment, use that for the MCR location.
-		# If not, the appropriate MCR version for use with fix_3_clean should be set in $FSL_FIXDIR/settings.sh.
-		if [ -z "${FSL_FIX_MCR}" ]; then
-			debug_disable_trap
-			set +u
-			source ${FSL_FIXDIR}/settings.sh
-			set -u
-			debug_enable_trap
-			export FSL_FIX_WBC="${Caret7_Command}"
-			# If FSL_FIX_MCR is still not defined after sourcing settings.sh, we have a problem
-			if [ -z "${FSL_FIX_MCR}" ]; then
-				log_Err_Abort "To use MATLAB run mode: ${MatlabRunMode}, the FSL_FIX_MCR environment variable must be set"
-			fi
-		fi
-		log_Msg "FSL_FIX_MCR: ${FSL_FIX_MCR}"
+# 		# fix_3_clean is part of the FIX distribution, which was compiled under its own (separate) MCR.
+# 		# If ${FSL_FIX_MCR} is already defined in the environment, use that for the MCR location.
+# 		# If not, the appropriate MCR version for use with fix_3_clean should be set in $FSL_FIXDIR/settings.sh.
+# 		if [ -z "${FSL_FIX_MCR}" ]; then
+# 			debug_disable_trap
+# 			set +u
+# 			source ${FSL_FIXDIR}/settings.sh
+# 			set -u
+# 			debug_enable_trap
+# 			export FSL_FIX_WBC="${Caret7_Command}"
+# 			# If FSL_FIX_MCR is still not defined after sourcing settings.sh, we have a problem
+# 			if [ -z "${FSL_FIX_MCR}" ]; then
+# 				log_Err_Abort "To use MATLAB run mode: ${MatlabRunMode}, the FSL_FIX_MCR environment variable must be set"
+# 			fi
+# 		fi
+# 		log_Msg "FSL_FIX_MCR: ${FSL_FIX_MCR}"
 						
-		matlab_cmd=("${matlab_exe}" "${FSL_FIX_MCR}" "${matlab_function_arguments[@]}")
+# 		matlab_cmd=("${matlab_exe}" "${FSL_FIX_MCR}" "${matlab_function_arguments[@]}")
 
-		# redirect tokens must be parsed by bash before doing variable expansion, and thus can't be inside a variable
-		# MPH: Going to let Compiled MATLAB use the existing stdout and stderr, rather than creating a separate log file
-		#matlab_logfile=".reapplyfixmultirun.${concatfmri}${RegString}.fix_3_clean.matlab.log"
-		#log_Msg "Run MATLAB command: ${matlab_cmd[*]} >> ${matlab_logfile} 2>&1"
-		#"${matlab_cmd[@]}" >> "${matlab_logfile}" 2>&1
-		log_Msg "Run compiled MATLAB: ${matlab_cmd[*]}"
-		"${matlab_cmd[@]}"
-		;;
+# 		# redirect tokens must be parsed by bash before doing variable expansion, and thus can't be inside a variable
+# 		# MPH: Going to let Compiled MATLAB use the existing stdout and stderr, rather than creating a separate log file
+# 		#matlab_logfile=".reapplyfixmultirun.${concatfmri}${RegString}.fix_3_clean.matlab.log"
+# 		#log_Msg "Run MATLAB command: ${matlab_cmd[*]} >> ${matlab_logfile} 2>&1"
+# 		#"${matlab_cmd[@]}" >> "${matlab_logfile}" 2>&1
+# 		log_Msg "Run compiled MATLAB: ${matlab_cmd[*]}"
+# 		"${matlab_cmd[@]}"
+# 		;;
 	
-	1 | 2)
-		# Use interpreted MATLAB or Octave
-		if [[ ${MatlabRunMode} == "1" ]]; then
-			interpreter=(matlab -nojvm -nodisplay -nosplash)
-		else
-			interpreter=(octave-cli -q --no-window-system)
-		fi
+# 	1 | 2)
+# 		# Use interpreted MATLAB or Octave
+# 		if [[ ${MatlabRunMode} == "1" ]]; then
+# 			interpreter=($MatlabPath -nojvm -nodisplay -nosplash)
+# 		else
+# 			interpreter=(octave-cli -q --no-window-system)
+# 		fi
 
-		if (( DoVol )); then
-			matlab_cmd="${ML_PATHS} fix_3_clean('${fixlist}',${aggressive},${MotionRegression},${AlreadyHP});"
-		else
-			matlab_cmd="${ML_PATHS} fix_3_clean('${fixlist}',${aggressive},${MotionRegression},${AlreadyHP},${DoVol});"
-		fi
+# 		if (( DoVol )); then
+# 			matlab_cmd="${ML_PATHS} fix_3_clean('${fixlist}',${aggressive},${MotionRegression},${AlreadyHP});"
+# 		else
+# 			matlab_cmd="${ML_PATHS} fix_3_clean('${fixlist}',${aggressive},${MotionRegression},${AlreadyHP},${DoVol});"
+# 		fi
 		
-		log_Msg "Run interpreted MATLAB/Octave (${interpreter[@]}) with command..."
-		log_Msg "${matlab_cmd}"
+# 		log_Msg "Run interpreted MATLAB/Octave (${interpreter[@]}) with command..."
+# 		log_Msg "${matlab_cmd}"
 		
-		# Use bash redirection ("here-string") to pass multiple commands into matlab
-		# (Necessary to protect the semicolons that separate matlab commands, which would otherwise
-		# get interpreted as separating different bash shell commands)
-		(
-			#fix's default settings.sh isn't safe to unbound variables or exit codes, so disable everything before sourcing
-			debug_disable_trap
-			set +u
-			source "${FSL_FIXDIR}/settings.sh"
-			set -u
-			debug_enable_trap
-			export FSL_FIX_WBC="${Caret7_Command}"
-			"${interpreter[@]}" <<<"${matlab_cmd}"
-		)
-		;;
+# 		# Use bash redirection ("here-string") to pass multiple commands into matlab
+# 		# (Necessary to protect the semicolons that separate matlab commands, which would otherwise
+# 		# get interpreted as separating different bash shell commands)
+# 		(
+# 			#fix's default settings.sh isn't safe to unbound variables or exit codes, so disable everything before sourcing
+# 			debug_disable_trap
+# 			set +u
+# 			source "${FSL_FIXDIR}/settings.sh"
+# 			set -u
+# 			debug_enable_trap
+# 			export FSL_FIX_WBC="${Caret7_Command}"
+# 			"${interpreter[@]}" <<<"${matlab_cmd}"
+# 		)
+# 		;;
 
-	*)
-		# Unsupported MATLAB run mode
-		log_Err_Abort "Unsupported MATLAB run mode value: ${MatlabRunMode}"
-		;;
-esac
+# 	*)
+# 		# Unsupported MATLAB run mode
+# 		log_Err_Abort "Unsupported MATLAB run mode value: ${MatlabRunMode}"
+# 		;;
+# esac
 
-log_Msg "Done running fix_3_clean"
+## Using PyFIX
+FSL_PyFIXDIR="$FSLDIR/bin"
+
+ICALabels=$(ls ${ConcatFolder}/${concatfmrihp}.ica/fix4melview*.txt | head -n 1)
+
+if ((MotionRegression)); then
+	# Cleanup
+	fix_cleanup_cmd=("${FSL_PyFIXDIR}/fix" -a "${ICALabels}" -m -h "${AlreadyHP}")
+
+else
+	# Cleanup
+	fix_cleanup_cmd=("${FSL_PyFIXDIR}/fix" -a "${ICALabels}")
+
+fi
+
+log_Msg "fix_cmd: ${fix_cleanup_cmd[*]}"
+
+# Running the cleanup
+"${fix_cleanup_cmd[@]}"
+
+log_Msg "Done running fix cleanup"
 
 # Return to ${ConcatFolder}
 # Do not use 'cd ${ConcatFolder}', because ${ConcatFolder} may not be an absolute path
@@ -844,7 +865,7 @@ for fmriname in $fmris ; do
 	# fmriname is expected to NOT include path info, or a nifti extension; make sure that is indeed the case
 	fmriname=$(basename $($FSLDIR/bin/remove_ext $fmriname))
 	# But, then generate the absolute path so we can reuse the code from hcp_fix_multi_run
-	fmri="${StudyFolder}/${Subject}/MNINonLinear/Results/${fmriname}/${fmriname}"
+	fmri="${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${fmriname}/${fmriname}"
 
 	fmriNoExt=$($FSLDIR/bin/remove_ext $fmri)  # $fmriNoExt still includes leading directory components
 	NumTPS=`"${Caret7_Command}" -file-information ${fmriNoExt}_Atlas${RegString}.dtseries.nii -no-map-info -only-number-of-maps`
@@ -865,14 +886,39 @@ for fmriname in $fmris ; do
 		# Make sure that readme_fmri_name is indeed without path or extension
 		readme_fmri_name=$(basename $($FSLDIR/bin/remove_ext $readme_fmri_name))
 		# But, then generate the absolute path so we can reuse the code from hcp_fix_multi_run
-		readme_fmri="${StudyFolder}/${Subject}/MNINonLinear/Results/${readme_fmri_name}/${readme_fmri_name}"
+		readme_fmri="${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${readme_fmri_name}/${readme_fmri_name}"
 		echo "  ${readme_fmri}" >> ${readme_for_cifti_out}
 	done
 	
-	if (( DoVol )); then
-		volume_out=${fmriNoExt}_hp${hp}_clean.nii.gz
-		"${Caret7_Command}" -volume-merge ${volume_out} -volume ${ConcatFolder}/${concatfmrihp}_clean.nii.gz -subvolume ${Start} -up-to ${Stop}
-		fslmaths ${volume_out} -div ${ConcatFolder}/${concatfmrihp}_vn -mul ${fmriNoExt}_hp${hp}_vn -add ${fmriNoExt}_mean ${volume_out}
+	# Volumetric output processing, modified to always run if input exists and name appropriately
+	if [ -f "${ConcatFolder}/${concatfmrihp}_clean.nii.gz" ]; then
+		if [ -n "${RegString}" ]; then # Only add RegString if it's not empty (RegString is _RegName)
+			volume_out_name="${fmriNoExt}_hp${hp}${RegString}_${CleanSubstring}.nii.gz"
+		else
+			# Fallback to original name if RegString is empty (e.g. RegName was NONE)
+			volume_out_name="${fmriNoExt}_hp${hp}_${CleanSubstring}.nii.gz" 
+		fi
+		log_Msg "Creating volumetric output: ${volume_out_name}"
+		
+		concat_vn_map="${ConcatFolder}/${concatfmrihp}_vn.nii.gz"
+		run_vn_map="${fmriNoExt}_hp${hp}_vn.nii.gz"
+		run_mean_map="${fmriNoExt}_mean.nii.gz"
+
+		if [ ! -f "$concat_vn_map" ]; then
+			log_Warn "WARNING: Concatenated VN map not found: $concat_vn_map. Cannot apply full volumetric reprocessing for $volume_out_name."
+			"${Caret7_Command}" -volume-merge "${volume_out_name}" -volume "${ConcatFolder}/${concatfmrihp}_clean.nii.gz" -subvolume ${Start} -up-to ${Stop}
+		elif [ ! -f "$run_vn_map" ]; then
+			log_Warn "WARNING: Per-run VN map not found: $run_vn_map. Cannot apply full volumetric reprocessing for $volume_out_name."
+			"${Caret7_Command}" -volume-merge "${volume_out_name}" -volume "${ConcatFolder}/${concatfmrihp}_clean.nii.gz" -subvolume ${Start} -up-to ${Stop}
+		elif [ ! -f "$run_mean_map" ]; then
+			log_Warn "WARNING: Per-run mean map not found: $run_mean_map. Cannot apply full volumetric reprocessing for $volume_out_name."
+			"${Caret7_Command}" -volume-merge "${volume_out_name}" -volume "${ConcatFolder}/${concatfmrihp}_clean.nii.gz" -subvolume ${Start} -up-to ${Stop}
+		else
+			"${Caret7_Command}" -volume-merge "${volume_out_name}" -volume "${ConcatFolder}/${concatfmrihp}_clean.nii.gz" -subvolume ${Start} -up-to ${Stop}
+			fslmaths "${volume_out_name}" -div "$concat_vn_map" -mul "$run_vn_map" -add "$run_mean_map" "${volume_out_name}"
+		fi
+	else
+		log_Warn "Concatenated cleaned volume ${ConcatFolder}/${concatfmrihp}_clean.nii.gz not found. Skipping volumetric output for ${fmriname}."
 	fi
 	Start=`echo "${Start} + ${NumTPS}" | bc -l`
 done

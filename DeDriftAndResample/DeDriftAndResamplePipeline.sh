@@ -72,6 +72,7 @@ opts_AddOptional '--matlab-run-mode' 'MatlabRunMode' '0, 1, or 2' "defaults to $
 0 = compiled MATLAB
 1 = interpreted MATLAB
 2 = Octave" "$g_matlab_default_mode"
+opts_AddOptional '--matlab-path' 'MatlabPath' 'string' "path to MATLAB"
 opts_ParseArguments "$@"
 
 if ((pipedirguessed))
@@ -210,10 +211,10 @@ fi
 CorrectionSigma=$(echo "sqrt ( 200 )" | bc -l)
 log_Msg "CorrectionSigma: ${CorrectionSigma}"
 
-AtlasFolder="${StudyFolder}/${Subject}/MNINonLinear"
+AtlasFolder="${StudyFolder}/${Subject}/processed/MNINonLinear"
 log_Msg "AtlasFolder: ${AtlasFolder}"
 
-T1wFolder="${StudyFolder}/${Subject}/T1w"
+T1wFolder="${StudyFolder}/${Subject}/processed/T1w"
 log_Msg "T1wFolder: ${T1wFolder}"
 
 NativeFolder="${AtlasFolder}/Native"
@@ -519,7 +520,7 @@ log_Msg "ReApply FIX Cleanup"
 log_Msg "fixNames: ${fixNames[*]+${fixNames[*]}}"
 for fMRIName in ${fixNames[@]+"${fixNames[@]}"} ; do
 	log_Msg "fMRIName: ${fMRIName}"
-	reapply_fix_cmd=("${HCPPIPEDIR}/ICAFIX/ReApplyFixPipeline.sh" --path="${StudyFolder}" --subject="${Subject}" --fmri-name="${fMRIName}" --high-pass="${HighPass}" --reg-name="${OutputRegName}" --matlab-run-mode="${MatlabRunMode}" --motion-regression="${MotionRegression}")
+	reapply_fix_cmd=("${HCPPIPEDIR}/ICAFIX/ReApplyFixPipeline.sh" --path="${StudyFolder}" --subject="${Subject}" --fmri-name="${fMRIName}" --high-pass="${HighPass}" --reg-name="${OutputRegName}" --matlab-run-mode="${MatlabRunMode}" --matlab-path="$MatlabPath" --motion-regression="${MotionRegression}")
 	log_Msg "reapply_fix_cmd: ${reapply_fix_cmd[*]}"
 	"${reapply_fix_cmd[@]}"
 done
@@ -531,7 +532,7 @@ do
 	log_Msg "mrFIXNames: ${mrFIXNames[$i]}"
 	log_Msg "mrFIXConcatNames: ${mrFIXConcatNames[$i]}"
 	#stage 2 parsing is done by reapply script
-	reapply_mr_fix_cmd=("${HCPPIPEDIR}/ICAFIX/ReApplyFixMultiRunPipeline.sh" --path="${StudyFolder}" --subject="${Subject}" --fmri-names="${mrFIXNames[$i]}" --concat-fmri-name="${mrFIXConcatNames[$i]}" --high-pass="${HighPass}" --reg-name="${OutputRegName}" --matlab-run-mode="${MatlabRunMode}" --motion-regression="${MotionRegression}")
+	reapply_mr_fix_cmd=("${HCPPIPEDIR}/ICAFIX/ReApplyFixMultiRunPipeline.sh" --path="${StudyFolder}" --subject="${Subject}" --fmri-names="${mrFIXNames[$i]}" --concat-fmri-name="${mrFIXConcatNames[$i]}" --high-pass="${HighPass}" --reg-name="${OutputRegName}" --matlab-run-mode="${MatlabRunMode}" --matlab-path="$MatlabPath" --motion-regression="${MotionRegression}")
 	log_Msg "reapply_mr_fix_cmd: ${reapply_mr_fix_cmd[*]}"
 	"${reapply_mr_fix_cmd[@]}"
 
@@ -550,13 +551,13 @@ do
 			            --study-folder="$StudyFolder"
 			            --subject="$Subject"
 			            --multirun-fix-names="${mrFIXNames[$i]}"
-			            --csv-out="$StudyFolder/$Subject/MNINonLinear/Results/${mrFIXConcatNames[$i]}/${mrFIXConcatNames[$i]}_Runs.csv"
-			            --concat-cifti-input="$StudyFolder/$Subject/MNINonLinear/Results/${mrFIXConcatNames[$i]}/${mrFIXConcatNames[$i]}_Atlas${regstring}_hp${HighPass}_clean.dtseries.nii"
+			            --csv-out="$StudyFolder/$Subject/processed/MNINonLinear/Results/${mrFIXConcatNames[$i]}/${mrFIXConcatNames[$i]}_Runs.csv"
+			            --concat-cifti-input="$StudyFolder/$Subject/processed/MNINonLinear/Results/${mrFIXConcatNames[$i]}/${mrFIXConcatNames[$i]}_Atlas${regstring}_hp${HighPass}_clean.dtseries.nii"
 			            --surf-reg-name="$regname")
 		
 		if (( ${#mrFIXExtractConcatNamesArr[@]} > 0 )) && [[ "${mrFIXExtractConcatNamesArr[$i]}" != NONE && "${mrFIXExtractConcatNamesArr[$i]}" != "" ]]
 		then
-			mkdir -p "$StudyFolder/$Subject/MNINonLinear/Results/${mrFIXExtractConcatNamesArr[$i]}"
+			mkdir -p "$StudyFolder/$Subject/processed/MNINonLinear/Results/${mrFIXExtractConcatNamesArr[$i]}"
 			
 			# Using clean_vn.dscalar.nii estimated from the full concat group for the extracted concat group as well.
 			# (i.e., estimate for the variance normalization map is based on the full concat group, not
@@ -576,11 +577,11 @@ do
 			#  residual to estimate the unstructured noise, whereas the individual run vn maps were computed using
 			#  PCA-based reconstruction of the unstructured noise in 'icaDim.m'.
 			
-			cp "$StudyFolder/$Subject/MNINonLinear/Results/${mrFIXConcatNames[$i]}/${mrFIXConcatNames[$i]}_Atlas${regstring}_hp${HighPass}_clean_vn.dscalar.nii" \
-			    "$StudyFolder/$Subject/MNINonLinear/Results/${mrFIXExtractConcatNamesArr[$i]}/${mrFIXExtractConcatNamesArr[$i]}_Atlas${regstring}_hp${HighPass}_clean_vn.dscalar.nii"
+			cp "$StudyFolder/$Subject/processed/MNINonLinear/Results/${mrFIXConcatNames[$i]}/${mrFIXConcatNames[$i]}_Atlas${regstring}_hp${HighPass}_clean_vn.dscalar.nii" \
+			    "$StudyFolder/$Subject/processed/MNINonLinear/Results/${mrFIXExtractConcatNamesArr[$i]}/${mrFIXExtractConcatNamesArr[$i]}_Atlas${regstring}_hp${HighPass}_clean_vn.dscalar.nii"
 			
 			extract_cmd+=(--multirun-fix-names-to-use="${mrFIXExtractNamesArr[$i]}"
-			              --cifti-out="$StudyFolder/$Subject/MNINonLinear/Results/${mrFIXExtractConcatNamesArr[$i]}/${mrFIXExtractConcatNamesArr[$i]}_Atlas${regstring}_hp${HighPass}_clean.dtseries.nii")
+			              --cifti-out="$StudyFolder/$Subject/processed/MNINonLinear/Results/${mrFIXExtractConcatNamesArr[$i]}/${mrFIXExtractConcatNamesArr[$i]}_Atlas${regstring}_hp${HighPass}_clean.dtseries.nii")
 		fi
 		
 		"${extract_cmd[@]}"
@@ -589,16 +590,16 @@ do
 	if ((mrFIXExtractDoVolBool))
 	then
 		# Using clean_vn.nii.gz estimated from the full concat group for the extracted concat group as well.
-		cp "$StudyFolder/$Subject/MNINonLinear/Results/${mrFIXConcatNames[$i]}/${mrFIXConcatNames[$i]}_hp${HighPass}_clean_vn.nii.gz" \
-		    "$StudyFolder/$Subject/MNINonLinear/Results/${mrFIXExtractConcatNamesArr[$i]}/${mrFIXExtractConcatNamesArr[$i]}_hp${HighPass}_clean_vn.nii.gz"
+		cp "$StudyFolder/$Subject/processed/MNINonLinear/Results/${mrFIXConcatNames[$i]}/${mrFIXConcatNames[$i]}_hp${HighPass}_clean_vn.nii.gz" \
+		    "$StudyFolder/$Subject/processed/MNINonLinear/Results/${mrFIXExtractConcatNamesArr[$i]}/${mrFIXExtractConcatNamesArr[$i]}_hp${HighPass}_clean_vn.nii.gz"
 		
 		extract_cmd=("${HCPPIPEDIR}/global/scripts/ExtractFromMRFIXConcat.sh"
 		                --study-folder="$StudyFolder"
 		                --subject="$Subject"
 		                --multirun-fix-names="${mrFIXNames[$i]}"
 		                --multirun-fix-names-to-use="${mrFIXExtractNamesArr[$i]}"
-		                --volume-out="$StudyFolder/$Subject/MNINonLinear/Results/${mrFIXExtractConcatNamesArr[$i]}/${mrFIXExtractConcatNamesArr[$i]}_hp${HighPass}_clean.nii.gz"
-		                --concat-volume-input="$StudyFolder/$Subject/MNINonLinear/Results/${mrFIXConcatNames[$i]}/${mrFIXConcatNames[$i]}_hp${HighPass}_clean.nii.gz")
+		                --volume-out="$StudyFolder/$Subject/processed/MNINonLinear/Results/${mrFIXExtractConcatNamesArr[$i]}/${mrFIXExtractConcatNamesArr[$i]}_hp${HighPass}_clean.nii.gz"
+		                --concat-volume-input="$StudyFolder/$Subject/processed/MNINonLinear/Results/${mrFIXConcatNames[$i]}/${mrFIXConcatNames[$i]}_hp${HighPass}_clean.nii.gz")
 		
 		"${extract_cmd[@]}"
 	fi

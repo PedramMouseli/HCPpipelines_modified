@@ -94,6 +94,7 @@ opts_AddOptional '--matlab-run-mode' 'MatlabRunMode' '0, 1, or 2' "defaults to $
 0 = compiled MATLAB
 1 = interpreted MATLAB
 2 = Octave" "$g_matlab_default_mode"
+opts_AddOptional '--matlab-path' 'MatlabPath' 'string' "path to MATLAB"
 opts_ParseArguments "$@"
 
 if ((pipedirguessed))
@@ -138,7 +139,7 @@ log_File_Must_Exist "${TopographyTarget}"
 output_proc_string="_vn" #To VN only to indicate that we did not revert the bias field before computing VN
 log_Msg "output_proc_string: ${output_proc_string}"
 
-expected_concatenated_output_dir="${StudyFolder}/${Subject}/MNINonLinear/Results/${OutputfMRIName}"
+expected_concatenated_output_dir="${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${OutputfMRIName}"
 expected_concatenated_output_file="${expected_concatenated_output_dir}/${OutputfMRIName}${fMRIProcSTRING}${output_proc_string}.dtseries.nii"
 before_vn_output_file="${expected_concatenated_output_dir}/${OutputfMRIName}${fMRIProcSTRING}_novn.dtseries.nii"
 
@@ -167,7 +168,7 @@ then
 	for ((index = 0; index < ${#mrNamesArray[@]}; ++index))
 	do
 		fmriName="${mrNamesArray[$index]}"
-		NumTPS=`${CARET7DIR}/wb_command -file-information "${StudyFolder}/${Subject}/MNINonLinear/Results/${fmriName}/${fmriName}_Atlas.dtseries.nii" -only-number-of-maps`
+		NumTPS=`${CARET7DIR}/wb_command -file-information "${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${fmriName}/${fmriName}_Atlas.dtseries.nii" -only-number-of-maps`
 		curTimepoints=$((curTimepoints + NumTPS))
 		runSplits[$((index + 1))]="$curTimepoints"
 		for ((index2 = 0; index2 < ${#mrNamesUseArray[@]}; ++index2))
@@ -191,8 +192,8 @@ then
 		mergeArgs+=(-column $((runSplits[runIndex] + 1)) -up-to $((runSplits[runIndex + 1])) )
 	done
 	mkdir -p "${expected_concatenated_output_dir}"
-	${CARET7DIR}/wb_command -cifti-merge "${before_vn_output_file}" -cifti "${StudyFolder}/${Subject}/MNINonLinear/Results/${mrfixConcatName}/${mrfixConcatName}_Atlas_hp${HighPass}_clean.dtseries.nii" "${mergeArgs[@]}"
-	${CARET7DIR}/wb_command -cifti-math 'data / variance' "${expected_concatenated_output_file}" -var data "${before_vn_output_file}" -var variance "${StudyFolder}/${Subject}/MNINonLinear/Results/${mrfixConcatName}/${mrfixConcatName}_Atlas_hp${HighPass}_clean_vn.dscalar.nii" -select 1 1 -repeat
+	${CARET7DIR}/wb_command -cifti-merge "${before_vn_output_file}" -cifti "${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${mrfixConcatName}/${mrfixConcatName}_Atlas_hp${HighPass}_clean.dtseries.nii" "${mergeArgs[@]}"
+	${CARET7DIR}/wb_command -cifti-math 'data / variance' "${expected_concatenated_output_file}" -var data "${before_vn_output_file}" -var variance "${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${mrfixConcatName}/${mrfixConcatName}_Atlas_hp${HighPass}_clean_vn.dscalar.nii" -select 1 1 -repeat
 	rm -f -- "${before_vn_output_file}"
 else
 	log_Msg "Running MSM on full timeseries"
@@ -241,6 +242,7 @@ log_Msg "fMRIProcSTRING: ${fMRIProcSTRING}"
 	--reg-conf-vars="${RegConfOverrideVars}" \
 	--msm-all-templates="${MSMAllTemplates}" \
 	--use-ind-mean="${UseIndMean}" \
-	--matlab-run-mode="${MatlabRunMode}"
+	--matlab-run-mode="${MatlabRunMode}" \
+	--matlab-path="$MatlabPath"
 	
 log_Msg "Completing main functionality"

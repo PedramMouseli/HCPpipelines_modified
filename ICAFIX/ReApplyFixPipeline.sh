@@ -74,6 +74,8 @@ opts_AddOptional '--matlab-run-mode' 'MatlabRunMode' '0, 1, 2' "defaults to 1
      1 = Use interpreted MATLAB
      2 = Use octave" "1"
 
+opts_AddOptional '--matlab-path' 'MatlabPath' 'string' "path to MATLAB"
+
 opts_AddOptional '--motion-regression' 'MotionRegression' 'TRUE or FALSE' "Perform motion regression, default false" "FALSE"
 
 opts_AddOptional '--delete-intermediates' 'DeleteIntermediates' 'TRUE or FALSE' "Delete the high-pass filtered files, default false" "FALSE"
@@ -125,9 +127,9 @@ have_hand_reclassification()
 	local HighPass="${4}"
 
 	if (( HighPass >= 0 )); then
-		[ -e "${StudyFolder}/${Subject}/MNINonLinear/Results/${fMRIName}/${fMRIName}_hp${HighPass}.ica/HandNoise.txt" ]
+		[ -e "${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${fMRIName}/${fMRIName}_hp${HighPass}.ica/HandNoise.txt" ]
 	else
-		[ -e "${StudyFolder}/${Subject}/MNINonLinear/Results/${fMRIName}/${fMRIName}.ica/HandNoise.txt" ]
+		[ -e "${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${fMRIName}/${fMRIName}.ica/HandNoise.txt" ]
 	fi
 }
 
@@ -202,7 +204,7 @@ fi
 log_Msg "Use fixlist=$fixlist"
 
 DIR=$(pwd)
-cd ${StudyFolder}/${Subject}/MNINonLinear/Results/${fMRIName}
+cd ${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${fMRIName}
 
 # Note: fix_3_clean does NOT filter the volume (NIFTI) data -- it assumes
 # that any desired filtering has already been done outside of fix.
@@ -298,90 +300,110 @@ export FSL_FIX_WBC="${Caret7_Command}"
 # sourcing settings.sh below, we explicitly set FSL_FIX_WBC back to value of ${Caret7_Command}.
 # (This may only be relevant for interpreted matlab/octave modes).
 
-log_Msg "Running fix_3_clean"
+log_Msg "Running fix cleanup"
 
-case ${MatlabRunMode} in
+# case ${MatlabRunMode} in
 
-	# See important WARNING above regarding why ${DoVol} is NOT included as an argument when DoVol=1 !!
+# 	# See important WARNING above regarding why ${DoVol} is NOT included as an argument when DoVol=1 !!
 		
-	0)
-		# Use Compiled MATLAB
+# 	0)
+# 		# Use Compiled MATLAB
 
-		matlab_exe="${FSL_FIXDIR}/compiled/$(uname -s)/$(uname -m)/run_fix_3_clean.sh"
+# 		matlab_exe="${FSL_FIXDIR}/compiled/$(uname -s)/$(uname -m)/run_fix_3_clean.sh"
 
-		# Do NOT enclose string variables inside an additional single quote because all
-		# variables are already passed into the compiled binary as strings
-		matlab_function_arguments=("${fixlist}" "${aggressive}" "${MotionRegression}" "${hp}")
-		if (( ! DoVol )); then
-			matlab_function_arguments+=("${DoVol}")
-		fi
+# 		# Do NOT enclose string variables inside an additional single quote because all
+# 		# variables are already passed into the compiled binary as strings
+# 		matlab_function_arguments=("${fixlist}" "${aggressive}" "${MotionRegression}" "${hp}")
+# 		if (( ! DoVol )); then
+# 			matlab_function_arguments+=("${DoVol}")
+# 		fi
 		
-		# fix_3_clean is part of the FIX distribution.
-		# If ${FSL_FIX_MCR} is already defined in the environment, use that for the MCR location.
-		# If not, the appropriate MCR version for use with fix_3_clean should be set in $FSL_FIXDIR/settings.sh.
-		if [ -z "${FSL_FIX_MCR}" ]; then
-			debug_disable_trap
-			set +u
-			source ${FSL_FIXDIR}/settings.sh
-			set -u
-			debug_enable_trap
-			export FSL_FIX_WBC="${Caret7_Command}"
-			# If FSL_FIX_MCR is still not defined after sourcing settings.sh, we have a problem
-			if [ -z "${FSL_FIX_MCR}" ]; then
-				log_Err_Abort "To use MATLAB run mode: ${MatlabRunMode}, the FSL_FIX_MCR environment variable must be set"
-			fi
-		fi
-		log_Msg "FSL_FIX_MCR: ${FSL_FIX_MCR}"
+# 		# fix_3_clean is part of the FIX distribution.
+# 		# If ${FSL_FIX_MCR} is already defined in the environment, use that for the MCR location.
+# 		# If not, the appropriate MCR version for use with fix_3_clean should be set in $FSL_FIXDIR/settings.sh.
+# 		if [ -z "${FSL_FIX_MCR}" ]; then
+# 			debug_disable_trap
+# 			set +u
+# 			source ${FSL_FIXDIR}/settings.sh
+# 			set -u
+# 			debug_enable_trap
+# 			export FSL_FIX_WBC="${Caret7_Command}"
+# 			# If FSL_FIX_MCR is still not defined after sourcing settings.sh, we have a problem
+# 			if [ -z "${FSL_FIX_MCR}" ]; then
+# 				log_Err_Abort "To use MATLAB run mode: ${MatlabRunMode}, the FSL_FIX_MCR environment variable must be set"
+# 			fi
+# 		fi
+# 		log_Msg "FSL_FIX_MCR: ${FSL_FIX_MCR}"
 
-		matlab_cmd=("${matlab_exe}" "${FSL_FIX_MCR}" "${matlab_function_arguments[@]}")
+# 		matlab_cmd=("${matlab_exe}" "${FSL_FIX_MCR}" "${matlab_function_arguments[@]}")
 
-		# redirect tokens must be parsed by bash before doing variable expansion, and thus can't be inside a variable
-		# MPH: Going to let Compiled MATLAB use the existing stdout and stderr, rather than creating a separate log file
-		#local matlab_logfile=".reapplyfix.${fMRIName}${RegString}.fix_3_clean.matlab.log"
-		#log_Msg "Run MATLAB command: ${matlab_cmd[*]} >> ${matlab_logfile} 2>&1"
-		#"${matlab_cmd[@]}" >> "${matlab_logfile}" 2>&1
-		log_Msg "Run compiled MATLAB: ${matlab_cmd[*]}"
-		"${matlab_cmd[@]}"
-		;;
+# 		# redirect tokens must be parsed by bash before doing variable expansion, and thus can't be inside a variable
+# 		# MPH: Going to let Compiled MATLAB use the existing stdout and stderr, rather than creating a separate log file
+# 		#local matlab_logfile=".reapplyfix.${fMRIName}${RegString}.fix_3_clean.matlab.log"
+# 		#log_Msg "Run MATLAB command: ${matlab_cmd[*]} >> ${matlab_logfile} 2>&1"
+# 		#"${matlab_cmd[@]}" >> "${matlab_logfile}" 2>&1
+# 		log_Msg "Run compiled MATLAB: ${matlab_cmd[*]}"
+# 		"${matlab_cmd[@]}"
+# 		;;
 	
-	1 | 2)
-		# Use interpreted MATLAB or Octave
-		if [[ ${MatlabRunMode} == "1" ]]; then
-			interpreter=(matlab -nojvm -nodisplay -nosplash)
-		else
-			interpreter=(octave-cli -q --no-window-system)
-		fi
+# 	1 | 2)
+# 		# Use interpreted MATLAB or Octave
+# 		if [[ ${MatlabRunMode} == "1" ]]; then
+# 			interpreter=(matlab -nojvm -nodisplay -nosplash)
+# 		else
+# 			interpreter=(octave-cli -q --no-window-system)
+# 		fi
 
-		if (( DoVol )); then
-			matlab_cmd="${ML_PATHS} fix_3_clean('${fixlist}',${aggressive},${MotionRegression},${hp});"
-		else
-			matlab_cmd="${ML_PATHS} fix_3_clean('${fixlist}',${aggressive},${MotionRegression},${hp},${DoVol});"
-		fi
+# 		if (( DoVol )); then
+# 			matlab_cmd="${ML_PATHS} fix_3_clean('${fixlist}',${aggressive},${MotionRegression},${hp});"
+# 		else
+# 			matlab_cmd="${ML_PATHS} fix_3_clean('${fixlist}',${aggressive},${MotionRegression},${hp},${DoVol});"
+# 		fi
 		
-		log_Msg "Run interpreted MATLAB/Octave (${interpreter[@]}) with command..."
-		log_Msg "${matlab_cmd}"
+# 		log_Msg "Run interpreted MATLAB/Octave (${interpreter[@]}) with command..."
+# 		log_Msg "${matlab_cmd}"
 
-		# Use bash redirection ("here-string") to pass multiple commands into matlab
-		# (Necessary to protect the semicolons that separate matlab commands, which would otherwise
-		# get interpreted as separating different bash shell commands)
-		(
-			#FIX's settings isn't safe to unset variables or exit codes, so disable all that
-			#TSC: when non-interactive, -u by itself causes exit on unset variable, so we need to disable that too
-			debug_disable_trap
-			set +u
-			source "${FSL_FIXDIR}/settings.sh"
-			set -u
-			debug_enable_trap
-			export FSL_FIX_WBC="${Caret7_Command}"; "${interpreter[@]}" <<<"${matlab_cmd}")
-		;;
+# 		# Use bash redirection ("here-string") to pass multiple commands into matlab
+# 		# (Necessary to protect the semicolons that separate matlab commands, which would otherwise
+# 		# get interpreted as separating different bash shell commands)
+# 		(
+# 			#FIX's settings isn't safe to unset variables or exit codes, so disable all that
+# 			#TSC: when non-interactive, -u by itself causes exit on unset variable, so we need to disable that too
+# 			debug_disable_trap
+# 			set +u
+# 			source "${FSL_FIXDIR}/settings.sh"
+# 			set -u
+# 			debug_enable_trap
+# 			export FSL_FIX_WBC="${Caret7_Command}"; "${interpreter[@]}" <<<"${matlab_cmd}")
+# 		;;
 
-	*)
-		# Unsupported MATLAB run mode
-		log_Err_Abort "Unsupported MATLAB run mode value: ${MatlabRunMode}"
-		;;
-esac
+# 	*)
+# 		# Unsupported MATLAB run mode
+# 		log_Err_Abort "Unsupported MATLAB run mode value: ${MatlabRunMode}"
+# 		;;
+# esac
 
-log_Msg "Done running fix_3_clean"
+## Using PyFIX
+FSL_PyFIXDIR="$FSLDIR/bin"
+
+ICALabels=$(ls ${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${fMRIName}/${fMRIName}${hpStr}.ica/fix4melview*.txt | head -n 1)
+
+if ((MotionRegression)); then
+	# Cleanup
+	fix_cleanup_cmd=("${FSL_PyFIXDIR}/fix" -a "${ICALabels}" -m -h "${AlreadyHP}")
+
+else
+	# Cleanup
+	fix_cleanup_cmd=("${FSL_PyFIXDIR}/fix" -a "${ICALabels}")
+
+fi
+
+log_Msg "fix_cmd: ${fix_cleanup_cmd[*]}"
+
+# Running the cleanup
+"${fix_cleanup_cmd[@]}"
+
+log_Msg "Done running fix cleanup"
 
 ## ---------------------------------------------------------------------------
 ## Rename some files (relative to the default names coded in fix_3_clean)
@@ -389,7 +411,7 @@ log_Msg "Done running fix_3_clean"
 
 # Remove any existing old versions of the cleaned data (normally they should be overwritten
 # in the renaming that follows, but this ensures that any old versions don't linger)
-cd ${StudyFolder}/${Subject}/MNINonLinear/Results/${fMRIName}
+cd ${StudyFolder}/${Subject}/processed/MNINonLinear/Results/${fMRIName}
 fmri=${fMRIName}
 if (( hp >= 0 )); then
 	fmrihp=${fmri}_hp${hp}

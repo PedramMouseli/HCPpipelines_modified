@@ -40,6 +40,10 @@ opts_AddOptional '--ref' 'Reference' 'image' 'reference image' "${FSLDIR}/data/s
 
 opts_AddOptional '--brainsize' 'BrainSizeOpt' 'value' 'brainsize'
 
+opts_AddOptional '--altimageidentifier' 'AltImageIdentifier' 'string' 'identifier for alternative image' ""
+
+opts_AddOptional '--regfrom' 'RegFrom' 'string' 'which image to use for registration, can be "input" or "alt". Default is "input".' "input"
+
 opts_ParseArguments "$@"
 
 if ((pipedirguessed))
@@ -112,9 +116,9 @@ $CARET7DIR/wb_command -convert-affine -from-world "$WD"/full2std_rigid_world.mat
 verbose_echo " --> Creating a resampled image"
 ${FSLDIR}/bin/applywarp --rel --interp=spline -i "$Input" -r "$Reference" --premat="$OutputMatrix" -o "$Output"
 
-if [ $Modality = T1w ] ; then
-  # apply to the mp2rage
-  ${FSLDIR}/bin/applywarp --rel --interp=spline -i "${Input}_mp2rage.nii.gz" -r "$Reference" --premat="$OutputMatrix" -o "${Output}_mp2rage.nii.gz"
+if [ $Modality = T1w ] && [ "$RegFrom" = "alt" ] ; then
+  # apply to the alternative image
+  ${FSLDIR}/bin/applywarp --rel --interp=spline -i "${Input}_${AltImageIdentifier}.nii.gz" -r "$Reference" --premat="$OutputMatrix" -o "${Output}_${AltImageIdentifier}.nii.gz"
 fi
 
 verbose_green_echo "---> Finished AC-PC Alignment"

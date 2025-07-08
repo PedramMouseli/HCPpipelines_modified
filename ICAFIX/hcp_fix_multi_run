@@ -747,9 +747,9 @@ Dim=`cat ${concatfmrihp}_dims.txt`
 
 log_Msg "Dim: ${Dim}"
 
-## ---------------------------------------------------------------------------
-## Run melodic on concatenated file
-## ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Run melodic on concatenated file
+# ---------------------------------------------------------------------------
 
 log_Debug_Msg "About to run melodic: Contents of ${concatfmrihp}.ica follow"
 if [ ! -z "${log_debugOn}" ] ; then
@@ -812,9 +812,9 @@ $FSLDIR/bin/imrm ${concatfmrihp}_vnts
 $FSLDIR/bin/imrm ${concatfmrihp}.ica/filtered_func_data.ica/alldat
 $FSLDIR/bin/imrm ${concatfmrihp}.ica/filtered_func_data.ica/concat_data
 
-# ---------------------------------------------------------------------------
-# Housekeeping related to files expected for FIX
-# ---------------------------------------------------------------------------
+# # ---------------------------------------------------------------------------
+# # Housekeeping related to files expected for FIX
+# # ---------------------------------------------------------------------------
 
 cd "${concatfmrihp}.ica"
 
@@ -857,8 +857,8 @@ if [ `$FSLDIR/bin/imtest ../../../../T2w` = 1 ] ; then
 	$FSLDIR/bin/fslmaths veins_exf -mas example_func veins_exf
 fi
 
-Return to ${ConcatFolder}
-Do not use 'cd ${ConcatFolder}', because ${ConcatFolder} may not be an absolute path
+# # Return to ${ConcatFolder}
+# # Do not use 'cd ${ConcatFolder}', because ${ConcatFolder} may not be an absolute path
 cd ../..
 
 ## ---------------------------------------------------------------------------
@@ -872,7 +872,7 @@ FSL_PyFIXDIR="$FSLDIR/bin"
 if [[ "${TrainingData}" != "" ]]; then
 	# User has specified a training data file
 
-	# add .RData suffix if not already there
+	# add .pyfix suffix if not already there
 	if [[ "${TrainingData}" != *.pyfix_model ]]; then
 		TrainingData=${TrainingData}.pyfix_model
 	fi
@@ -943,7 +943,7 @@ log_Msg "Check ${concatfmrihp}.ica/fix/logMatlab.txt for log output from feature
 log_Msg "Check ${concatfmrihp}.ica/.fix_2b_predict.log for log output from component classification"
 log_Msg "Check ${concatfmrihp}.ica/.fix.log for log output from cleanup stage"
 # "${fix_cmd[@]}"
-# "${fix_features_cmd[@]}"
+"${fix_features_cmd[@]}"
 "${fix_classification_cmd[@]}"
 "${fix_cleanup_cmd[@]}"
 return_code=$?

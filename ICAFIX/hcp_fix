@@ -382,6 +382,7 @@ cd ../..
 ## ---------------------------------------------------------------------------
 
 log_Msg "Running FIX"
+FSL_PyFIXDIR="$FSLDIR/bin"
 
 # Changes to handle user specified training data file
 if [ "X${TrainingData}" != X ]; then  

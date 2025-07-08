@@ -7,7 +7,7 @@ This is a modified version of the [HCP pipelines][HCPpipelines]. Some of the cha
 * ANTs transformations converted to the FSL format using [c3d_affine_tool][c3d_affine] and [Workbench][wb].
 * Option added for excluding volumes from the beginning and end of the fMRI time series in the fMRI volume processing step.
 * Option added to PreFreeSurfer step for switching between the original and alternative T1w image for registration.
-* The older version of ICAFIX is replaced with PyFIX.
+* The older version of ICAFIX is replaced with [PyFIX][pyfix].
 * Movement regressor plots will be generated for each task in in their ICA folder.
 * Added the IcaFixMelodicOnlyProcessingBatch.sh script to run ICAFIX only for the melodic output when we want to train our own model and use it for ICAFIX classification and cleaning.
 
@@ -44,3 +44,4 @@ and click Sign In. For instructions on joining without a Google account: [hcp-us
 [ants]: https://github.com/ANTsX/ANTsPy
 [c3d_affine]: https://github.com/pyushkevich/c3d/tree/master
 [wb]: https://www.humanconnectome.org/software/workbench-command/-convert-warpfield
+[pyfix]: https://git.fmrib.ox.ac.uk/fsl/pyfix

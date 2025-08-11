@@ -6,6 +6,8 @@ get_batch_options() {
     command_line_specified_study_folder=""
     command_line_specified_subj=""
     command_line_specified_run_local="FALSE"
+    TASK_SPECS=()
+    TASK_SPEC_FILE=""
 
     local index=0
     local numArgs=${#arguments[@]}
@@ -25,6 +27,14 @@ get_batch_options() {
                 ;;
             --runlocal)
                 command_line_specified_run_local="TRUE"
+                index=$(( index + 1 ))
+                ;;
+            --TaskSpec=*)
+                TASK_SPECS+=("${argument#*=}")
+                index=$(( index + 1 ))
+                ;;
+            --TaskSpecFile=*)
+                TASK_SPEC_FILE=${argument#*=}
                 index=$(( index + 1 ))
                 ;;
             *)
@@ -87,19 +97,31 @@ TaskList_general+=(stress_run-2)
 TaskList_general+=(stress_run-3)
 TaskList_general+=(stress_run-4)
 
-# TaskList=()
-# TaskList+=(clench_run-1)
-# TaskList+=(clench_run-2)
-# TaskList+=(clench_run-3)
-# TaskList+=(clench_run-4)
-# TaskList+=(rest)
-# # TaskList+=(localizer_run-1)
-# # TaskList+=(localizer_run-2)
-# # TaskList+=(localizer_run-3)
-# TaskList+=(stress_run-1)
-# TaskList+=(stress_run-2)
-# TaskList+=(stress_run-3)
-# TaskList+=(stress_run-4)
+# Read TASK_SPECS from file if provided (CSV: task[,first[,num]]; supports # comments)
+if [ -n "$TASK_SPEC_FILE" ] && [ -f "$TASK_SPEC_FILE" ]; then
+    while IFS= read -r line; do
+        line="${line%%$'\r'}"
+        case "$line" in
+            ''|'#'*) continue ;;
+        esac
+        task=$(echo "$line" | awk -F, '{print $1}')
+        if [ -z "$task" ]; then
+            task=$(echo "$line" | awk '{print $1}')
+        fi
+        [ -n "$task" ] && TASK_SPECS+=("$task")
+    done < "$TASK_SPEC_FILE"
+fi
+
+lookup_task_in_specs() {
+    local task="$1"
+    local i spec
+    for (( i=0; i<${#TASK_SPECS[@]}; i++ )); do
+        spec="${TASK_SPECS[$i]}"
+        key="${spec%%:*}"
+        [ "$key" = "$task" ] && return 0
+    done
+    return 1
+}
 
 for Subject in $Subjlist ; do
     echo $Subject
@@ -108,8 +130,15 @@ for Subject in $Subjlist ; do
     TaskList=()
     for task in "${TaskList_general[@]}" ; do
       if [ -e "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_bold.nii.gz" ]; then
-        TaskList+=($task)
-        echo "${task} added to the task list"
+        if [ ${#TASK_SPECS[@]} -gt 0 ]; then
+            if lookup_task_in_specs "$task" ; then
+                TaskList+=($task)
+                echo "${task} added to the task list (specified)"
+            fi
+        else
+            TaskList+=($task)
+            echo "${task} added to the task list"
+        fi
       fi
     done
 

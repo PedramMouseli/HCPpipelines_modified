@@ -27,7 +27,7 @@
 show_usage() {
     cat <<EOF
 
-hcp_fix <4D_FMRI_data> <highpass> <do_motion_regression> [<TrainingFile>] [<FixThreshold>] [<DeleteIntermediates>]
+hcp_fix <4D_FMRI_data> <highpass> <do_motion_regression> [<TrainingFile>] [<FixThreshold>] [<DeleteIntermediates>] [<LowPass>]
 
   Apply FIX cleaning to a single file
 
@@ -57,6 +57,10 @@ e.g.  hcp_fix rfMRI_REST1_RL/rfMRI_REST1_RL.nii.gz 2000 FALSE
      Delete highpass-filtered files at the end, use TRUE or FALSE.
      Default = FALSE.
      You must specify both <TrainingFile> and <FixThreshold> in order to specify this option.
+
+  [<LowPass>] (optional)
+        Low-pass filter full-width (2*sigma) in seconds.
+        If not specified, no low-pass filtering is performed.
 
 EOF
 }
@@ -229,6 +233,10 @@ fi
 if [ -z "${FixThresh}" ]; then
 	FixThresh=10
 fi
+LowPass=-1
+if [ $# -ge 7 ] ; then
+    LowPass=$7
+fi
 
 ## ---------------------------------------------------------------------------
 ## Report parameters
@@ -240,6 +248,7 @@ log_Msg "doMotionRegression: ${doMotionRegression}"
 log_Msg "TrainingData: ${TrainingData}"
 log_Msg "FixThresh: ${FixThresh}"
 log_Msg "DeleteIntermediates: ${DeleteIntermediates}"
+log_Msg "LowPass: ${LowPass}"
 
 ## ---------------------------------------------------------------------------
 ## Preparation (highpass)
@@ -249,23 +258,19 @@ tr=`$FSLDIR/bin/fslval $fmri pixdim4`
 log_Msg "tr: ${tr}"
 
 fmrihp=${fmri}_hp${hp}
-if (( hp > 0 )); then
-  log_Msg "Running highpass"
-  #convert to sigma in volumes (not seconds)
-  hptr=$(echo "scale = 10; $hp / (2 * $tr)" | bc -l)
-
-  # Starting with FSL 5.0.7, 'fslmaths -bptf' no longer includes the temporal mean in its output.
-  # A work-around to this, which works with both the pre- and post-5.0.7 behavior is to compute
-  # the temporal mean, remove it, run -bptf, and then add the mean back in.
-  ${FSLDIR}/bin/fslmaths ${fmri} -Tmean ${fmrihp}
-  highpass_cmd="${FSLDIR}/bin/fslmaths ${fmri} -sub ${fmrihp} -bptf ${hptr} -1 -add ${fmrihp} ${fmrihp}"
-  log_Msg "highpass_cmd: ${highpass_cmd}"
-  ${highpass_cmd}
+if (( $(echo "$hp > 0" | bc -l) )); then
+  log_Msg "Running highpass filtering with TemporalFilt.py"
+  python3 "${HCPPIPEDIR}/ICAFIX/TemporalFilt.py" --input-file "${fmri}.nii.gz" --output-file "${fmrihp}.nii.gz" --tr "${tr}" --hp "${hp}" --lp "${LowPass}" --add-mean-back
+  if [ -f "${fmri}_Atlas.dtseries.nii" ]; then
+    python3 "${HCPPIPEDIR}/ICAFIX/TemporalFilt.py" --input-file "${fmri}_Atlas.dtseries.nii" --output-file "${fmri}_Atlas_hp${hp}.dtseries.nii" --tr "${tr}" --hp "${hp}" --lp "${LowPass}" --add-mean-back
+  fi
 elif (( hp == 0 )); then
-  # Nothing in script currently detrends the volume if hp=0 is requested (which is the intended meaning of hp=0)
-  log_Err_Abort "hp = ${hp} not currently supported"
+  log_Msg "Running linear detrending with TemporalFilt.py"
+  python3 "${HCPPIPEDIR}/ICAFIX/TemporalFilt.py" --input-file "${fmri}.nii.gz" --output-file "${fmrihp}.nii.gz" --tr "${tr}" --poly-detrend 1 --add-mean-back
+  if [ -f "${fmri}_Atlas.dtseries.nii" ]; then
+    python3 "${HCPPIPEDIR}/ICAFIX/TemporalFilt.py" --input-file "${fmri}_Atlas.dtseries.nii" --output-file "${fmri}_Atlas_hp${hp}.dtseries.nii" --tr "${tr}" --poly-detrend 1 --add-mean-back
+  fi
 else
-  # Reset $fmrihp variable in this case to not include an "_hp${hp}" string in the outputs
   fmrihp=${fmri}
 fi
 
@@ -338,7 +343,9 @@ $FSLDIR/bin/imln ../$fmrihp filtered_func_data
 # However, hp-filtering of the CIFTI (dtseries) occurs within fix_3_clean.
 # So here, we just create a symlink with the file name expected by
 # fix_3_clean ("Atlas.dtseries.nii") to the non-filtered data.
-if [ -f ../${fmri}_Atlas.dtseries.nii ] ; then
+if [ -f ../${fmri}_Atlas_hp${hp}.dtseries.nii ] ; then
+  $FSLDIR/bin/imln ../${fmri}_Atlas_hp${hp}.dtseries.nii Atlas.dtseries.nii
+elif [ -f ../${fmri}_Atlas.dtseries.nii ] ; then
   $FSLDIR/bin/imln ../${fmri}_Atlas.dtseries.nii Atlas.dtseries.nii
 fi
 

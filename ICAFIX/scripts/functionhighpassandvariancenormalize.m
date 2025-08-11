@@ -1,6 +1,6 @@
 function functionhighpassandvariancenormalize(TR, hp, fmri, WBC, varargin)
 %
-% FUNCTIONHIGHPASSANDVARIANCENORMALIZE(TR, HP, FMRI, WBC, [REGSTRING], [VOLWISHARTOVERRIDE], [CIFTIWISHARTOVERRIDE], [ICADIMMODE])
+% FUNCTIONHIGHPASSANDVARIANCENORMALIZE(TR, HP, FMRI, WBC, [REGSTRING], [VOLWISHARTOVERRIDE], [CIFTIWISHARTOVERRIDE], [ICADIMMODE], [LP])
 % 
 % This function:
 % (1) Detrends / high-pass filters motion confounds, NIFTI (volume) and CIFTI files
@@ -26,6 +26,7 @@ function functionhighpassandvariancenormalize(TR, hp, fmri, WBC, varargin)
 % [VOLWISHARTOVERRIDE]: Change the number of volume wisharts. OPTIONAL.
 % [CIFTIWISHARTOVERRIDE]: Change the number of surface wisharts. OPTIONAL.
 % [ICADIMMODE]: 'default' or 'fewtimepoints'. OPTIONAL.
+% [LP]: Low-pass filter full-width (2*sigma) in seconds. OPTIONAL.
 
 % Note: HP='pd0' would be interpreted as a true 0th order detrend, which is 
 % the same as demeaning. Mathematically, this is the same as the HP<0 condition,
@@ -44,6 +45,7 @@ ciftiwishart = 3;  %CIFTI fits 3 distributions by default to deal with volume to
 VN = 1; %first iteration uses 1 for dimensionality
 iters = -1; %iterate until the average of the dimensionality history doesn't change much
 VNhalfdim = false; %after loading the input, set VN to half the timepoints
+lp = -1; % No low-pass by default
 
 %% Parse varargin
 if length(varargin) >= 1 && ~isempty(varargin{1})
@@ -82,9 +84,20 @@ if length(varargin) >= 4
     end
 end
 
+if length(varargin) >= 5
+    if isdeployed()
+        lp = str2double(varargin{5});
+    else
+        lp = varargin{5};
+    end
+end
+
 %% Allow for compiled matlab
 if isdeployed()
     TR = str2double(TR);
+    if ischar(lp)
+        lp = str2double(lp);
+    end
 end
 
 % Check whether polynomial detrend is being requested for the high-pass filtering.
@@ -153,44 +166,30 @@ if pdflag  % polynomial detrend case, assumes single run
     if dovol
         % Save and filter confounds, as a NIFTI, as expected by FIX
         save_avw(reshape(confounds',size(confounds,2),1,1,size(confounds,1)),[fmri hpstring '.ica/mc/prefiltered_func_data_mcf_conf'],'f',[1 1 1 TR]);
-        confounds=detrendpoly(confounds, polydeg);
-        save_avw(reshape(confounds',size(confounds,2),1,1,size(confounds,1)),[fmri hpstring '.ica/mc/prefiltered_func_data_mcf_conf_hp'],'f',[1 1 1 TR]);
-
-        % Load volume time series and reduce to just the non-zero voxels (for memory efficiency)
-        % Note: Use 'range' to identify non-zero voxels (which is very memory efficient)
-        % rather than 'std' (which requires additional memory equal to the size of the input)
-        ctsfull=single(read_avw([fmri '.nii.gz']));
+        system(['python3 ' getenv('HCPPIPEDIR') '/ICAFIX/TemporalFilt.py --input-file ' fmri hpstring '.ica/mc/prefiltered_func_data_mcf_conf.nii.gz --output-file ' fmri hpstring '.ica/mc/prefiltered_func_data_mcf_conf_hp.nii.gz --tr ' num2str(TR) ' --poly-detrend ' num2str(polydeg)]);
+        
+        % Load volume time series and apply polynomial detrending
+        system(['python3 ' getenv('HCPPIPEDIR') '/ICAFIX/TemporalFilt.py --input-file ' fmri '.nii.gz --output-file ' fmri hpstring '.nii.gz --tr ' num2str(TR) ' --poly-detrend ' num2str(polydeg)]);
+        ctsfull=single(read_avw([fmri hpstring '.nii.gz']));
         ctsX=size(ctsfull,1); ctsY=size(ctsfull,2); ctsZ=size(ctsfull,3); ctsT=size(ctsfull,4); 
         ctsfull=reshape(ctsfull,ctsX*ctsY*ctsZ,ctsT);
         ctsmask=range(ctsfull, 2) > 0;
         fprintf('Non-empty voxels: %d (= %.2f%% of %d)\n', sum(ctsmask), 100*sum(ctsmask)/size(ctsfull,1), size(ctsfull,1));
         cts=ctsfull(ctsmask,:); 
         clear ctsfull;
-
-        % Polynomial detrend
-        cts=detrendpoly(cts', polydeg)';
-
-        % Write out result, restoring to original size
-        ctsfull=zeros(ctsX*ctsY*ctsZ,ctsT, 'single');
-        ctsfull(ctsmask,:)=cts;
-        save_avw(reshape(ctsfull,ctsX,ctsY,ctsZ,ctsT),[fmri hpstring '.nii.gz'],'f',[1 1 1 TR]); 
-        clear ctsfull;
-        % Use -d flag in fslcpgeom (even if not technically necessary) to reduce possibility of mistakes when editing script
-        call_fsl(['fslcpgeom ' fmri '.nii.gz ' fmri hpstring '.nii.gz -d']);
     end
     
-    BO.cdata=detrendpoly(BO.cdata', polydeg)';
-    ciftisave(BO,[fmri '_Atlas' regstring hpstring '.dtseries.nii'],WBC);
+    system(['python3 ' getenv('HCPPIPEDIR') '/ICAFIX/TemporalFilt.py --input-file ' fmri '_Atlas' regstring '.dtseries.nii --output-file ' fmri '_Atlas' regstring hpstring '.dtseries.nii --tr ' num2str(TR) ' --poly-detrend ' num2str(polydeg)]);
+    BO = ciftiopen([fmri '_Atlas' regstring hpstring '.dtseries.nii'],WBC);
 
 elseif hp > 0  % "fslmaths -bptf" based filtering, assumes single run
     if dovol
         % Save and filter confounds, as a NIFTI, as expected by FIX
         save_avw(reshape(confounds',size(confounds,2),1,1,size(confounds,1)),[fmri hpstring '.ica/mc/prefiltered_func_data_mcf_conf'],'f',[1 1 1 TR]);
-        call_fsl(sprintf(['fslmaths ' fmri hpstring '.ica/mc/prefiltered_func_data_mcf_conf -bptf %f -1 ' fmri hpstring '.ica/mc/prefiltered_func_data_mcf_conf_hp'],0.5*hp/TR));
-
-        % bptf filtering; no masking here, so this is probably memory inefficient
-        call_fsl(['fslmaths ' fmri '.nii.gz -bptf ' num2str(0.5*hp/TR) ' -1 ' fmri hpstring '.nii.gz']);
-        call_fsl(['fslcpgeom ' fmri '.nii.gz ' fmri hpstring '.nii.gz -d']);
+        system(['python3 ' getenv('HCPPIPEDIR') '/ICAFIX/TemporalFilt.py --input-file ' fmri hpstring '.ica/mc/prefiltered_func_data_mcf_conf.nii.gz --output-file ' fmri hpstring '.ica/mc/prefiltered_func_data_mcf_conf_hp.nii.gz --tr ' num2str(TR) ' --hp ' num2str(hp) ' --lp ' num2str(lp)]);
+        
+        % High-pass filter volume
+        system(['python3 ' getenv('HCPPIPEDIR') '/ICAFIX/TemporalFilt.py --input-file ' fmri '.nii.gz --output-file ' fmri hpstring '.nii.gz --tr ' num2str(TR) ' --hp ' num2str(hp) ' --lp ' num2str(lp)]);
         
         % Load in result and reduce to just the non-zero voxels (for memory efficiency going forward)
         ctsfull=single(read_avw([fmri hpstring '.nii.gz']));
@@ -202,15 +201,13 @@ elseif hp > 0  % "fslmaths -bptf" based filtering, assumes single run
         clear ctsfull;
     end
     
-    BOdimX=size(BO.cdata,1);  BOdimZnew=ceil(BOdimX/100);  BOdimT=size(BO.cdata,2);
-    save_avw(reshape([BO.cdata ; zeros(100*BOdimZnew-BOdimX,BOdimT)],10,10,BOdimZnew,BOdimT),'Atlas','f',[1 1 1 TR]);
-    call_fsl(sprintf('fslmaths Atlas -bptf %f -1 Atlas',0.5*hp/TR));
-    grot=reshape(single(read_avw('Atlas')),100*BOdimZnew,BOdimT);  BO.cdata=grot(1:BOdimX,:);  clear grot;
-    ciftisave(BO,[fmri '_Atlas' regstring hpstring '.dtseries.nii'],WBC);
-    delete('Atlas.nii.gz');
+    system(['python3 ' getenv('HCPPIPEDIR') '/ICAFIX/TemporalFilt.py --input-file ' fmri '_Atlas' regstring '.dtseries.nii --output-file ' fmri '_Atlas' regstring hpstring '.dtseries.nii --tr ' num2str(TR) ' --hp ' num2str(hp) ' --lp ' num2str(lp)]);
+    BO = ciftiopen([fmri '_Atlas' regstring hpstring '.dtseries.nii'],WBC);
 
 elseif hp < 0  % If no hp filtering, still need to at least demean the volumetric time series, note the above code assumes concatenated input in this condition, so the cifti and motion parameters aren't loaded
     if dovol
+        % Demean volume
+        system(['python3 ' getenv('HCPPIPEDIR') '/ICAFIX/TemporalFilt.py --input-file ' fmri '.nii.gz --output-file ' fmri '.nii.gz --tr ' num2str(TR) ' --poly-detrend 0']);
 
         % Load volume time series and reduce to just the non-zero voxels (for memory efficiency)
         ctsfull=single(read_avw([fmri '.nii.gz']));
@@ -220,10 +217,7 @@ elseif hp < 0  % If no hp filtering, still need to at least demean the volumetri
         fprintf('Non-empty voxels: %d (= %.2f%% of %d)\n', sum(ctsmask), 100*sum(ctsmask)/size(ctsfull,1), size(ctsfull,1));
         cts=ctsfull(ctsmask,:);
         clear ctsfull;
-        
-        cts=demean(cts')';
     end
-
 end
 
 if VNhalfdim

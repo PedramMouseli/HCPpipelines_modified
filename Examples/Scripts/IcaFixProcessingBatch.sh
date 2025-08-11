@@ -19,6 +19,8 @@ DEFAULT_RUN_LOCAL="FALSE"
 #	${FixDir}				- Directory containing FIX
 #	${RunLocal}				- Indication whether to run this processing "locally" i.e. not submit
 #							  the processing to a cluster or grid
+#   ${TaskList}             - Space delimited list of tasks to process
+#   ${BandpassTasks}        - Space delimited list of tasks to band-pass filter
 #
 get_options() {
 	local scriptName=$(basename ${0})
@@ -30,6 +32,8 @@ get_options() {
 	EnvironmentScript="${DEFAULT_ENVIRONMENT_SCRIPT}"
 	FixDir="${DEFAULT_FIXDIR}"
 	RunLocal="${DEFAULT_RUN_LOCAL}"
+    TaskList=""
+    BandpassTasks=""
 
 	# parse arguments
 	local index=0
@@ -57,6 +61,14 @@ get_options() {
 				FixDir=${argument#*=}
 				index=$(( index + 1 ))
 				;;
+            --task-list=*)
+                TaskList=${argument#*=}
+                index=$(( index + 1 ))
+                ;;
+            --bandpass-tasks=*)
+                BandpassTasks=${argument#*=}
+                index=$(( index + 1 ))
+                ;;
 			--runlocal | --RunLocal)
 				RunLocal="TRUE"
 				index=$(( index + 1 ))
@@ -110,6 +122,8 @@ get_options() {
 		echo "   FixDir: ${FixDir}"
 	fi
 	echo "   RunLocal: ${RunLocal}"
+    echo "   TaskList: ${TaskList}"
+    echo "   BandpassTasks: ${BandpassTasks}"
 	echo "-- ${scriptName}: Specified Command-Line Options: -- End --"
 }  # get_options()
 
@@ -143,40 +157,14 @@ main() {
 	# Otherwise, leave ConcatNames empty (in which case "single-run" FIX is executed serially on each run in ${fMRINames})
 	#ConcatNames=""
 
-	TaskList_general=()
-	TaskList_general+=(clench)
-	TaskList_general+=(rest)
-	TaskList_general+=(localizer)
-	TaskList_general+=(stress)
-
 	runs="run-1 run-2 run-3 run-4"
-
-	# ConcatNames=()
-	# fMRINames=()
-	# for task in "${TaskList_general[@]}" ; do
-	#   if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
-	#     ConcatNames+="${task}@"
-	#     echo "${task} added to the task list"
-	#
-	#     if [ $task == "rest" ]; then
-	#       fMRINames+="${task}"
-	#     fi
-	#
-	#     for run in ${runs} ; do
-	#       if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_${run}"* >/dev/null 2>&1; then
-	#         fMRINames+="${task}_${run}@"
-	#       fi
-	#     done
-	#     fMRINames+="%"
-	#   fi
-	# done
 
 	# set temporal highpass full-width (2*sigma) to use, in seconds, cannot be 0 for single-run FIX
 	# MR FIX also supports 0 for a linear detrend, or "pdX" for a polynomial detrend of order X
 	# e.g., bandpass=pd1 is linear detrend (functionally equivalent to bandpass=0)
 	# bandpass=pd2 is a quadratic detrend
-	bandpass=125 # in seconds, equal to 0.008 Hz for TR=1.5 and 1/(2*f*TR)
-	#bandpass=2000 #for single run FIX, bandpass=2000 was used in HCP preprocessing
+	bandpass_hp=125 # in seconds, equal to f=0.008 Hz (1/125)
+    bandpass_lp=12.5 # in seconds, equal to f=0.08 Hz (1/12.5)
 
 	# set whether or not to regress motion parameters (24 regressors)
 	# out of the data as part of FIX (TRUE or FALSE)
@@ -221,7 +209,7 @@ main() {
 		## find the task list
 		ConcatNames=()
 		fMRINames=()
-		for task in "${TaskList_general[@]}" ; do
+        for task in ${TaskList}; do
 		  if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
 		    ConcatNames+="${task}_ICA@"
 		    echo "${task} added to the task list"
@@ -248,7 +236,15 @@ main() {
 
 				InputFile="${ResultsFolder}/${fMRIName}/${fMRIName}"
 
-				cmd=("${queuing_command[@]}" "${HCPPIPEDIR}/ICAFIX/hcp_fix" "${InputFile}" ${bandpass} ${domot} "${SRTrainingData}" ${FixThreshold} "${DeleteIntermediates}")
+                lp_arg=""
+                for bandpass_task in ${BandpassTasks}; do
+                    if [[ "${fMRIName}" == *"${bandpass_task}"* ]]; then
+                        lp_arg="${bandpass_lp}"
+                        break
+                    fi
+                done
+
+				cmd=("${queuing_command[@]}" "${HCPPIPEDIR}/ICAFIX/hcp_fix" "${InputFile}" ${bandpass_hp} ${domot} "${SRTrainingData}" ${FixThreshold} "${DeleteIntermediates}" ${lp_arg})
 				echo "About to run: ${cmd[*]}"
 				"${cmd[@]}"
 			done
@@ -282,7 +278,15 @@ main() {
 
 				echo "  InputFile: ${InputFile}"
 
-				cmd=("${queuing_command[@]}" "${HCPPIPEDIR}/ICAFIX/hcp_fix_multi_run" --fmri-names="${InputFile}" --high-pass=${bandpass} --concat-fmri-name="${ConcatFileName}" --motion-regression=${domot} --training-file="${MRTrainingData}" --fix-threshold=${FixThreshold} --delete-intermediates="${DeleteIntermediates}" --config="$config" --processing-mode="$processingmode")
+                lp_arg="--low-pass=-1"
+                for bandpass_task in ${BandpassTasks}; do
+                    if [[ "${ConcatName}" == *"${bandpass_task}"* ]]; then
+                        lp_arg="--low-pass=${bandpass_lp}"
+                        break
+                    fi
+                done
+
+				cmd=("${queuing_command[@]}" "${HCPPIPEDIR}/ICAFIX/hcp_fix_multi_run" --fmri-names="${InputFile}" --high-pass=${bandpass_hp} ${lp_arg} --concat-fmri-name="${ConcatFileName}" --motion-regression=${domot} --training-file="${MRTrainingData}" --fix-threshold=${FixThreshold} --delete-intermediates="${DeleteIntermediates}" --config="$config" --processing-mode="$processingmode")
 				echo "About to run: ${cmd[*]}"
 				"${cmd[@]}"
 			done

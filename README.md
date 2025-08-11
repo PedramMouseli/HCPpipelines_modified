@@ -9,7 +9,9 @@ This is a modified version of the [HCP pipelines][HCPpipelines]. Some of the cha
 * Option added to PreFreeSurfer step for switching between the original and alternative T1w image for registration.
 * The older version of ICAFIX is replaced with [PyFIX][pyfix].
 * Movement regressor plots will be generated for each task in in their ICA folder.
-* Added the IcaFixMelodicOnlyProcessingBatch.sh script to run ICAFIX only for the melodic output when we want to train our own model and use it for ICAFIX classification and cleaning.
+* Added the IcaFixMelodicOnlyProcessingBatch.sh script to only run FSL MELODIC when we want to train our own model and use it for ICAFIX classification and cleaning.
+* Temporal filtering is done in python using [Scipy][scipy] and [Nibabel][nibabel] instead of fslmaths.
+* User can input the tasks which will be bandpass filtered in the IcaFixProcessingBatch.sh script. The rest of the tasks will be highpass filtered by default (or no filtering if highpass<0).
 
 # HCP Pipelines 
 
@@ -45,3 +47,5 @@ and click Sign In. For instructions on joining without a Google account: [hcp-us
 [c3d_affine]: https://github.com/pyushkevich/c3d/tree/master
 [wb]: https://www.humanconnectome.org/software/workbench-command/-convert-warpfield
 [pyfix]: https://git.fmrib.ox.ac.uk/fsl/pyfix
+[scipy]: https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.butter.html
+[nibabel]: https://nipy.org/nibabel/

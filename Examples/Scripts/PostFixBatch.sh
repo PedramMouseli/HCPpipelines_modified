@@ -6,6 +6,8 @@ get_batch_options() {
     command_line_specified_study_folder=""
     command_line_specified_subj=""
     command_line_specified_run_local="FALSE"
+    TASK_SPECS=()
+    TASK_SPEC_FILE=""
 
     local index=0
     local numArgs=${#arguments[@]}
@@ -25,6 +27,14 @@ get_batch_options() {
                 ;;
             --runlocal)
                 command_line_specified_run_local="TRUE"
+                index=$(( index + 1 ))
+                ;;
+            --TaskSpec=*)
+                TASK_SPECS+=("${argument#*=}")
+                index=$(( index + 1 ))
+                ;;
+            --TaskSpecFile=*)
+                TASK_SPEC_FILE=${argument#*=}
                 index=$(( index + 1 ))
                 ;;
             *)
@@ -83,13 +93,28 @@ TaskList_general+=(rest)
 TaskList_general+=(localizer)
 TaskList_general+=(stress)
 
+# If a TaskSpec file was provided, read tasks (first column). Supports # comments.
+if [ -n "$TASK_SPEC_FILE" ] && [ -f "$TASK_SPEC_FILE" ]; then
+    TMP_TASKS=()
+    while IFS= read -r line; do
+        line="${line%%$'\r'}"
+        case "$line" in
+            ''|'#'*) continue ;;
+        esac
+        task=$(echo "$line" | awk -F, '{print $1}')
+        if [ -z "$task" ]; then task=$(echo "$line" | awk '{print $1}'); fi
+        [ -n "$task" ] && TMP_TASKS+=("$task")
+    done < "$TASK_SPEC_FILE"
+    if [ ${#TMP_TASKS[@]} -gt 0 ]; then
+        TaskList_general=("${TMP_TASKS[@]}")
+    fi
+fi
 
-# for Subject in $Subjlist ; do
-#     echo $Subject
-#     for task in "${fMRINames[@]}" ; do
-#         echo $task
-#     done
-# done
+# Also allow --TaskSpec to enumerate tasks directly
+if [ ${#TASK_SPECS[@]} -gt 0 ]; then
+    TaskList_general=("${TASK_SPECS[@]}")
+fi
+
 HighPass="125"
 ReUseHighPass="YES" #Use YES if running on output from multi-run FIX, otherwise use NO
 

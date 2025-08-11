@@ -6,6 +6,8 @@ get_batch_options() {
     command_line_specified_study_folder=""
     command_line_specified_subj=""
     command_line_specified_run_local="FALSE"
+    TASK_SPECS=()
+    TASK_SPEC_FILE=""
 
     local index=0
     local numArgs=${#arguments[@]}
@@ -25,6 +27,14 @@ get_batch_options() {
                 ;;
             --runlocal)
                 command_line_specified_run_local="TRUE"
+                index=$(( index + 1 ))
+                ;;
+            --TaskSpec=*)
+                TASK_SPECS+=("${argument#*=}")
+                index=$(( index + 1 ))
+                ;;
+            --TaskSpecFile=*)
+                TASK_SPEC_FILE=${argument#*=}
                 index=$(( index + 1 ))
                 ;;
             *)
@@ -187,6 +197,64 @@ get_vol_num() {
     esac
 }
 
+# Read TASK_SPECS from file if provided (CSV: task,first,num; supports # comments)
+if [ -n "$TASK_SPEC_FILE" ] && [ -f "$TASK_SPEC_FILE" ]; then
+    while IFS= read -r line; do
+        # trim
+        line="${line%%$'\r'}"
+        case "$line" in
+            ''|'#'*) continue ;;
+        esac
+        # allow comma or whitespace
+        task=$(echo "$line" | awk -F, '{print $1}')
+        first=$(echo "$line" | awk -F, '{print $2}')
+        num=$(echo "$line" | awk -F, '{print $3}')
+        # fallback to whitespace split if commas not used
+        if [ -z "$first" ]; then
+            task=$(echo "$line" | awk '{print $1}')
+            first=$(echo "$line" | awk '{print $2}')
+            num=$(echo "$line" | awk '{print $3}')
+        fi
+        spec="$task"
+        [ -n "$first" ] && spec+=":$first"
+        [ -n "$num" ] && spec+=":$num"
+        TASK_SPECS+=("$spec")
+    done < "$TASK_SPEC_FILE"
+fi
+
+# Helpers to lookup overrides from TASK_SPECS (format task[:first[:num]])
+lookup_spec_for_task() {
+    local task="$1"
+    local i spec key rest
+    for (( i=0; i<${#TASK_SPECS[@]}; i++ )); do
+        spec="${TASK_SPECS[$i]}"
+        key="${spec%%:*}"
+        if [ "$key" = "$task" ]; then
+            echo "$spec"
+            return 0
+        fi
+    done
+    return 1
+}
+
+get_override_first() {
+    local task="$1"
+    local spec="$(lookup_spec_for_task "$task")" || { echo ""; return; }
+    local rest="${spec#*:}"
+    if [ "$rest" = "$spec" ]; then echo ""; return; fi
+    echo "${rest%%:*}"
+}
+
+get_override_num() {
+    local task="$1"
+    local spec="$(lookup_spec_for_task "$task")" || { echo ""; return; }
+    local rest="${spec#*:}"
+    if [ "$rest" = "$spec" ]; then echo ""; return; fi
+    # second field if present
+    local after_first="${rest#*:}"
+    if [ "$after_first" = "$rest" ]; then echo ""; return; fi
+    echo "$after_first"
+}
 
 # Start or launch pipeline processing for each subject
 for Subject in $Subjlist ; do
@@ -196,8 +264,16 @@ for Subject in $Subjlist ; do
     TaskList=()
     for task in "${TaskList_general[@]}" ; do
       if [ -e "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_bold.nii.gz" ]; then
-        TaskList+=($task)
-        echo "${task} added to the task list"
+        # If TASK_SPECS provided, limit to specified tasks only
+        if [ ${#TASK_SPECS[@]} -gt 0 ]; then
+            if lookup_spec_for_task "$task" > /dev/null ; then
+                TaskList+=($task)
+                echo "${task} added to the task list (specified)"
+            fi
+        else
+            TaskList+=($task)
+            echo "${task} added to the task list"
+        fi
       fi
     done
 
@@ -207,9 +283,14 @@ for Subject in $Subjlist ; do
         TaskName=`echo ${fMRIName} | sed 's/_[APLR]\+$//'`
         echo "  ${SCRIPT_NAME}: TaskName: ${TaskName}"
 
-        # Get first volume and volume number to keep for the task
+        # Get first volume and volume number to keep for the task (defaults)
         firstVol=$(get_first_vol "$fMRIName")
         volNum=$(get_vol_num "$fMRIName")
+        # Override from TASK_SPECS if provided
+        override_first=$(get_override_first "$fMRIName")
+        override_num=$(get_override_num "$fMRIName")
+        if [ -n "$override_first" ]; then firstVol="$override_first"; fi
+        if [ -n "$override_num" ]; then volNum="$override_num"; fi
 
         # len=${#fMRIName}
         # echo "  ${SCRIPT_NAME}: len: $len"

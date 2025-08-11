@@ -6,6 +6,8 @@ get_batch_options() {
     command_line_specified_study_folder=""
     command_line_specified_subj=""
     command_line_specified_run_local="FALSE"
+    TASK_SPECS=()
+    TASK_SPEC_FILE=""
 
     local index=0
     local numArgs=${#arguments[@]}
@@ -27,12 +29,20 @@ get_batch_options() {
                 command_line_specified_run_local="TRUE"
                 index=$(( index + 1 ))
                 ;;
-	    *)
-		echo ""
-		echo "ERROR: Unrecognized Option: ${argument}"
-		echo ""
-		exit 1
-		;;
+            --TaskSpec=*)
+                TASK_SPECS+=("${argument#*=}")
+                index=$(( index + 1 ))
+                ;;
+            --TaskSpecFile=*)
+                TASK_SPEC_FILE=${argument#*=}
+                index=$(( index + 1 ))
+                ;;
+        	*)
+        		echo ""
+        		echo "ERROR: Unrecognized Option: ${argument}"
+        		echo ""
+        		exit 1
+        		;;
         esac
     done
 }
@@ -123,6 +133,29 @@ fi
 
 if [ -n "${command_line_specified_subj}" ]; then
     Subjlist="${command_line_specified_subj}"
+fi
+
+# If a TaskSpec file was provided, read tasks from it (first column). Supports # comments.
+if [ -n "$TASK_SPEC_FILE" ] && [ -f "$TASK_SPEC_FILE" ]; then
+    TMP_TASKS=()
+    while IFS= read -r line; do
+        line="${line%%$'\r'}"
+        case "$line" in
+            ''|'#'*) continue ;;
+        esac
+        task=$(echo "$line" | awk -F, '{print $1}')
+        if [ -z "$task" ]; then task=$(echo "$line" | awk '{print $1}'); fi
+        [ -n "$task" ] && TMP_TASKS+=("$task")
+    done < "$TASK_SPEC_FILE"
+    # If any tasks were specified, override TaskList_general order with those present
+    if [ ${#TMP_TASKS[@]} -gt 0 ]; then
+        TaskList_general=("${TMP_TASKS[@]}")
+    fi
+fi
+
+# Also allow --TaskSpec to enumerate tasks directly
+if [ ${#TASK_SPECS[@]} -gt 0 ]; then
+    TaskList_general=("${TASK_SPECS[@]}")
 fi
 
 # Log the originating call

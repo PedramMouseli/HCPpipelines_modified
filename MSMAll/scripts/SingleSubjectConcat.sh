@@ -62,7 +62,7 @@ if [ "${OutputProcSTRING}" = "NONE" ]; then
 fi
 log_Msg "OutputProcSTRING: ${OutputProcSTRING}"
 
-AtlasFolder="${StudyFolder}/${Subject}/MNINonLinear"
+AtlasFolder="${StudyFolder}/${Subject}/processed/MNINonLinear"
 log_Msg "AtlasFolder: ${AtlasFolder}"
 
 OutputFolder="${AtlasFolder}/Results/${OutputfMRIName}"

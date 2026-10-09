@@ -132,14 +132,14 @@ echo " " >> $WD/log.txt
 ReferenceBrain="${HCPPIPEDIR_Templates}/MNI152_T1_0.7mm_brain.nii.gz"
 Reference2mmBrain="${HCPPIPEDIR_Templates}/MNI152_T1_2mm_brain.nii.gz"
 
-/Applications/freesurfer/7.4.1/bin/mri_synthstrip -i "${Input}.nii.gz" -o "${OutputBrainExtractedImage}.nii.gz" -m "${OutputBrainMask}.nii.gz" --no-csf
+SYNTHSTRIP_BIN="${FREESURFER_HOME:-/Applications/freesurfer/7.4.1}/bin/mri_synthstrip"
+${SYNTHSTRIP_BIN} -i "${Input}.nii.gz" -o "${OutputBrainExtractedImage}.nii.gz" -m "${OutputBrainMask}.nii.gz" --no-csf
 if [ $Modality = T1w ] ; then
 
   verbose_echo " ... non-linear registration to 2mm reference"
   # run ANTs registration in python
   python "${HCPPIPEDIR}/ANTs/antsReg.py" "${InputForReg}.nii.gz" "$Reference" "${WD}/${BaseName}_"
-  # Convert ANTs warp to FSL
-  c3d_affine_tool -ref "$Reference" -src "${InputForReg}.nii.gz" -itk "${WD}/${BaseName}_0GenericAffine.mat" -ras2fsl -o "$WD"/roughlin.mat
+  python "${HCPPIPEDIR}/ANTs/itk2fsl.py" --ref "$Reference" --src "${InputForReg}.nii.gz" --itk "${WD}/${BaseName}_0GenericAffine.mat" --out "$WD"/roughlin.mat
   $CARET7DIR/wb_command -convert-warpfield -from-itk "${WD}/${BaseName}_1Warp.nii.gz" -to-fnirt "${WD}/${BaseName}_fnirt.nii.gz" "$Reference"
   ${FSLDIR}/bin/convertwarp --relout --ref="$Reference2mm" --premat="$WD"/roughlin.mat --warp1="${WD}/${BaseName}_fnirt.nii.gz" --out="$WD"/str2standard.nii.gz
   # Create the jacobian matrix from warp
@@ -159,8 +159,7 @@ else
   verbose_echo " ... non-linear registration to 2mm reference"
   # run ANTs registration in python
   python "${HCPPIPEDIR}/ANTs/antsReg.py" "${InputForReg}.nii.gz" "$Reference" "${WD}/${BaseName}_"
-  # Convert ANTs warp to FSL
-  c3d_affine_tool -ref "$Reference" -src "${InputForReg}.nii.gz" -itk "${WD}/${BaseName}_0GenericAffine.mat" -ras2fsl -o "$WD"/roughlin.mat
+  python "${HCPPIPEDIR}/ANTs/itk2fsl.py" --ref "$Reference" --src "${InputForReg}.nii.gz" --itk "${WD}/${BaseName}_0GenericAffine.mat" --out "$WD"/roughlin.mat
   $CARET7DIR/wb_command -convert-warpfield -from-itk "${WD}/${BaseName}_1Warp.nii.gz" -to-fnirt "${WD}/${BaseName}_fnirt.nii.gz" "$Reference"
   ${FSLDIR}/bin/convertwarp --relout --ref="$Reference2mm" --premat="$WD"/roughlin.mat --warp1="${WD}/${BaseName}_fnirt.nii.gz" --out="$WD"/str2standard.nii.gz
   # Create the jacobian matrix from warp

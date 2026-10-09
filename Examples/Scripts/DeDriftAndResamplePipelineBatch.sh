@@ -189,7 +189,8 @@ for Subject in $Subjlist ; do
         if [ "$task" == "rest" ]; then
             # Check if any base file for 'rest' task exists
             # Modify this check if your 'rest' files have run numbers
-            if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
+            # if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
+            if ls "${StudyFolder}/${Subject}/func/${Subject}_${task}"* >/dev/null 2>&1; then
             # Treat 'rest' itself as the run identifier for the rest_ICA group
             runs_found_for_task+=("rest")
             fi
@@ -208,7 +209,8 @@ for Subject in $Subjlist ; do
             echo "Found runs for task ${task}: ${runs_found_for_task[*]}"
             
             # Add the corresponding ICA concatenation name to its list
-            MRFixConcatNames_list+=("${task}_ICA")
+            # MRFixConcatNames_list+=("${task}_ICA")
+            MRFixConcatNames_list+=("${task}")
             # Join the found runs for this task with '@'
             task_run_string=$(IFS=@; echo "${runs_found_for_task[*]}")
             

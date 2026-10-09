@@ -51,7 +51,7 @@ get_batch_options "$@"
 
 StudyFolder="${HOME}/projects/Pipelines_ExampleData" #Location of Subject folders (named by subjectID)
 Subjlist="100307 100610" #Space delimited list of subject IDs
-EnvironmentScript="${HOME}/Library/CloudStorage/OneDrive-UniversityofToronto/PhD/codes/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts/SetUpHCPPipeline.sh" #Pipeline environment script
+EnvironmentScript="${HOME}/Library/CloudStorage/OneDrive-UniversityofToronto/PhD/codes/HCP_pipelines/HCPpipelines-4.8.0/Examples/Scripts/SetUpHCPPipeline_fs7.sh" #Pipeline environment script
 
 if [ -n "${command_line_specified_study_folder}" ]; then
     StudyFolder="${command_line_specified_study_folder}"
@@ -263,7 +263,8 @@ for Subject in $Subjlist ; do
     # Finding available task data
     TaskList=()
     for task in "${TaskList_general[@]}" ; do
-      if [ -e "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_bold.nii.gz" ]; then
+    #   if [ -e "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_bold.nii.gz" ]; then
+        if [ -e "${StudyFolder}/${Subject}/func/${Subject}_${task}_run-1_bold.nii.gz" ]; then
         # If TASK_SPECS provided, limit to specified tasks only
         if [ ${#TASK_SPECS[@]} -gt 0 ]; then
             if lookup_spec_for_task "$task" > /dev/null ; then
@@ -297,7 +298,8 @@ for Subject in $Subjlist ; do
         # start=$(( len - 2 ))
 
         # PhaseEncodingDir=${fMRIName:start:2}
-        PhaseEncodingDir="AP"
+        # PhaseEncodingDir="AP"
+        PhaseEncodingDir="PA"
         echo "  ${SCRIPT_NAME}: PhaseEncodingDir: ${PhaseEncodingDir}"
 
         case ${PhaseEncodingDir} in
@@ -321,7 +323,8 @@ for Subject in $Subjlist ; do
 
         echo "  ${SCRIPT_NAME}: UnwarpDir: ${UnwarpDir}"
 
-        fMRITimeSeries="${StudyFolder}/${Subject}/func/${Subject}_task-${fMRIName}_bold.nii.gz"
+        # fMRITimeSeries="${StudyFolder}/${Subject}/func/${Subject}_task-${fMRIName}_bold.nii.gz"
+        fMRITimeSeries="${StudyFolder}/${Subject}/func/${Subject}_${fMRIName}_run-1_bold.nii.gz"
 
         # A single band reference image (SBRef) is recommended if available
         # Set to NONE if you want to use the first volume of the timeseries for motion correction
@@ -335,11 +338,16 @@ for Subject in $Subjlist ; do
         # In-plane acceleration, phase oversampling, phase resolution, phase field-of-view, and interpolation
         # all potentially need to be accounted for (which they are in Siemen's reported BWPPPE)
         # EchoSpacing="0.00058"
-        EchoSpacing="0.000284999"
+        # EchoSpacing="0.000284999"
+        EchoSpacing="0.000300506"
+        # EchoSpacing="0.000513575"
+        # EchoSpacing="0.000509992"
 
         # Susceptibility distortion correction method (required for accurate processing)
         # Values: TOPUP, SiemensFieldMap (same as FIELDMAP), GEHealthCareLegacyFieldMap, GEHealthCareFieldMap, PhilipsFieldMap
-        DistortionCorrection="SiemensFieldMap"
+        # DistortionCorrection="SiemensFieldMap"
+        DistortionCorrection="GEHealthCareFieldMap"
+        # DistortionCorrection="NONE"
 
         # Receive coil bias field correction method
         # Values: NONE, LEGACY, or SEBASED
@@ -366,17 +374,21 @@ for Subject in $Subjlist ; do
         # Not using Siemens Gradient Echo Field Maps for susceptibility distortion correction
         # Set following to NONE if using TOPUP
         # or set the following inputs if using regular FIELDMAP (i.e. SiemensFieldMap GEHealthCareFieldMap PhilipsFieldMap)
-        MagnitudeInputName="${StudyFolder}/${Subject}/fmap/${Subject}_magnitude2.nii.gz"
+        # MagnitudeInputName="${StudyFolder}/${Subject}/fmap/${Subject}_magnitude2.nii.gz"
+        MagnitudeInputName="${StudyFolder}/${Subject}/fmap/${Subject}_magnitude.nii.gz"
         # MagnitudeInputName="NONE" #Expects 4D Magnitude volume with two 3D volumes (differing echo times) - or a single 3D Volume
 
-        PhaseInputName="${StudyFolder}/${Subject}/fmap/${Subject}_phasediff.nii.gz"
+        # PhaseInputName="${StudyFolder}/${Subject}/fmap/${Subject}_phasediff.nii.gz"
+        PhaseInputName="${StudyFolder}/${Subject}/fmap/${Subject}_fieldmap.nii.gz"
         # PhaseInputName="NONE" #Expects a 3D Phase difference volume (Siemen's style) -or Fieldmap in Hertz for GE Healthcare
 
-        EchoTime1=$( jq .EchoTime "${StudyFolder}/${Subject}/fmap/${Subject}_magnitude1.json" )
-        EchoTime2=$( jq .EchoTime "${StudyFolder}/${Subject}/fmap/${Subject}_magnitude2.json" )
-        Delta=$(echo $EchoTime2 - $EchoTime1 | bc)
-        Delta_sec=$(echo "scale=4; $Delta*1000" | bc)
-        DeltaTE=${Delta_sec#-}
+        # EchoTime1=$( jq .EchoTime "${StudyFolder}/${Subject}/fmap/${Subject}_magnitude1.json" )
+        # EchoTime2=$( jq .EchoTime "${StudyFolder}/${Subject}/fmap/${Subject}_magnitude2.json" )
+        # Delta=$(echo $EchoTime2 - $EchoTime1 | bc)
+        # Delta_sec=$(echo "scale=4; $Delta*1000" | bc)
+        # DeltaTE=${Delta_sec#-}
+        DeltaTE="2"
+
         # DeltaTE="NONE" #For Siemens, typically 2.46ms for 3T, 1.02ms for 7T; For GE Healthcare at 3T, *usually* 2.304ms for 2D-B0MAP and 2.272ms for 3D-B0MAP
         # For GE HealthCare, see related notes in PreFreeSurferPipelineBatch.sh and FieldMapProcessingAll.sh
 
@@ -388,7 +400,9 @@ for Subject in $Subjlist ; do
         # Example Value:
         #  GEB0InputName="${StudyFolder}/${Subject}/unprocessed/3T/${fMRIName}/${Subject}_3T_GradientEchoFieldMap.nii.gz"
         #  DeltaTE=2.272 # ms
-        GEB0InputName="NONE"
+        # GEB0InputName="NONE"
+        # DeltaTE="2"
+        # GEB0InputName="${StudyFolder}/${Subject}/fmap/${Subject}_fieldmap.nii.gz"
 
         # Target final resolution of fMRI data
         # 2mm is recommended for 3T HCP data, 1.6mm for 7T HCP data (i.e. should match acquisition resolution)
@@ -436,6 +450,7 @@ for Subject in $Subjlist ; do
             --topupconfig="$TopUpConfig" \
             --biascorrection="$BiasCorrection" \
             --mctype="$MCType"
+            # --processing-mode='LegacyStyleData'
 
         # The following lines are used for interactive debugging to set the positional parameters: $1 $2 $3 ...
 

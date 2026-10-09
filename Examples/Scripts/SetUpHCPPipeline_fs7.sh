@@ -50,6 +50,7 @@ source ${FREESURFER_HOME}/SetUpFreeSurfer.sh > /dev/null 2>&1
 # If you want to use MSM Configuration files other than those already provided, can change the following
 export MSMCONFIGDIR="${HCPPIPEDIR}/MSMConfig"
 
+export OMP_NUM_THREADS=1
 
 # ---------------------------------------------------------
 # Users probably won't need to edit anything below this line

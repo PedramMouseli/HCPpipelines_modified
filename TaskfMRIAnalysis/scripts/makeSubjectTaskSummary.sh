@@ -170,7 +170,7 @@ log_Msg "MAIN: SET_NAME_STRINGS: RegString: ${RegString}"
 
 
 # Determine locations of necessary directories (using expected naming convention)
-ResultsFolder="${Path}/${Subject}/MNINonLinear/Results"
+ResultsFolder="${Path}/${Subject}/processed/MNINonLinear/Results"
 
 # Determine which analyses need to be packaged into summary directory
 # initialize list variables

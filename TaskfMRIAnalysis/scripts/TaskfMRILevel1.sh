@@ -199,13 +199,13 @@ log_Msg "MAIN: SET_NAME_STRINGS: Extension: ${Extension}"
 Filenames="";
 
 # Need fsf files in scan-level directories
-Filenames="$Filenames ${ResultsFolder}/${LevelOnefMRIName}/${LevelOnefsfName}_hp200_s4_level1.fsf"
+Filenames="$Filenames ${ResultsFolder}/${LevelOnefMRIName}/${LevelOnefsfName}_level1.fsf"
 
-if [[ -e "${ResultsFolder}/${LevelOnefMRIName}/${LevelOnefsfName}_hp200_s4_level1.fsf" ]]; then
+if [[ -e "${ResultsFolder}/${LevelOnefMRIName}/${LevelOnefsfName}_level1.fsf" ]]; then
 	# Need EVs referenced in fsf file
 	while read line; do
 		Filenames="$Filenames ${ResultsFolder}/${LevelOnefMRIName}/${line}"
-	done <<< "$(grep -e 'set fmri(custom' ${ResultsFolder}/${LevelOnefMRIName}/${LevelOnefsfName}_hp200_s4_level1.fsf | \
+	done <<< "$(grep -e 'set fmri(custom' ${ResultsFolder}/${LevelOnefMRIName}/${LevelOnefsfName}_level1.fsf | \
 	sed -e 's|../||' | cut -d'"' -f2)"
 fi
 
@@ -298,7 +298,11 @@ fi
 ### Edit fsf file to record the parameters used in this analysis
 # Copy template fsf file into $FEATDir
 log_Msg "MAIN: MAKE_DESIGNS: Copying fsf file to .feat directory"
-cp ${ResultsFolder}/${LevelOnefMRIName}/${LevelOnefsfName}_hp200_s4_level1.fsf ${FEATDir}/design.fsf
+cp ${ResultsFolder}/${LevelOnefMRIName}/${LevelOnefsfName}_level1.fsf ${FEATDir}/design.fsf
+
+# Copy the EVs to the .feat directory
+mkdir -p ${FEATDir}/EVs
+cp ${ResultsFolder}/${LevelOnefMRIName}/EVs/* ${FEATDir}/EVs/
 
 # Change the highpass filter string to the desired highpass filter
 log_Msg "MAIN: MAKE_DESIGNS: Change design.fsf: Set highpass filter string to the desired highpass filter to ${TemporalFilter}"

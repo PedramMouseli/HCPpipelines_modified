@@ -250,9 +250,9 @@ log_Msg "FixThresh: ${FixThresh}"
 log_Msg "DeleteIntermediates: ${DeleteIntermediates}"
 log_Msg "LowPass: ${LowPass}"
 
-## ---------------------------------------------------------------------------
-## Preparation (highpass)
-## ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Preparation (highpass)
+# ---------------------------------------------------------------------------
 
 tr=`$FSLDIR/bin/fslval $fmri pixdim4`
 log_Msg "tr: ${tr}"
@@ -302,9 +302,9 @@ if [ ! -z "${log_debugOn}" ] ; then
 fi
 log_Debug_Msg "End of melodic version log, help, and checksum"
 
-## ---------------------------------------------------------------------------
-## Run melodic
-## ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Run melodic
+# ---------------------------------------------------------------------------
 
 melodic_cmd="${MELODIC} -i ${fmrihp} -o ${fmrihp}.ica/filtered_func_data.ica --nobet --report --Oall --tr=${tr}"
 if [ ! -z "${log_debugOn}" ] ; then
@@ -328,6 +328,9 @@ fi
 # (these may only get created in the context of MIGP)
 $FSLDIR/bin/imrm ${fmrihp}.ica/filtered_func_data.ica/alldat
 $FSLDIR/bin/imrm ${fmrihp}.ica/filtered_func_data.ica/concat_data
+
+#Plot the movement regressors
+python ${HCPPIPEDIR}/ICAFIX/PlotMovementRegressors.py Movement_Regressors.txt Movement_Regressors.png
 
 ## ---------------------------------------------------------------------------
 ## Housekeeping related to files expected for FIX
@@ -395,9 +398,9 @@ FSL_PyFIXDIR="$FSLDIR/bin"
 if [ "X${TrainingData}" != X ]; then  
         # User has specified a training data file
 	
-	# add .RData suffix if not already there
-	if [[ "${TrainingData}" != *.RData ]]; then 
-		TrainingData=${TrainingData}.RData
+	# add .pyfix_model suffix if not already there
+	if [[ "${TrainingData}" != *.pyfix_model ]]; then 
+		TrainingData=${TrainingData}.pyfix_model
 	fi
 
 	# if the specified TrainingData is not a full path to an existing file,
@@ -424,20 +427,45 @@ else
 fi
 log_Msg "using training data file: ${TrainingData}"
 
+model_name=$(basename "${TrainingData}" .pyfix_model)
+
 # set up fix command
 # use array for whitespace safety, even if the rest of the script isn't
-if [[ ${doMotionRegression} == "TRUE" ]]; then
-    fix_cmd=("${FSL_FIXDIR}/fix" "${fmrihp}.ica" "${TrainingData}" "${FixThresh}" -m -h -1)
+if ((doMotionRegression)); then
+	# Extract features
+	fix_features_cmd=("${FSL_PyFIXDIR}/fix" -f "${fmrihp}.ica")
+	# Switch to PyFIX for classification and cleanup
+	# Classification
+	fix_classification_cmd=("${FSL_PyFIXDIR}/fix" -c "${fmrihp}.ica" "${TrainingData}" "${FixThresh}")
+	# Cleanup
+	fix_cleanup_cmd=("${FSL_PyFIXDIR}/fix" -a "${fmrihp}.ica/fix4melview_${model_name}_thr${FixThresh}.txt" -m -h "${AlreadyHP}")
+	# fix_cmd=("${FSL_FIXDIR}/fix" "${concatfmrihp}.ica" "${TrainingData}" "${FixThresh}" -m -h "${AlreadyHP}")
 else
-	fix_cmd=("${FSL_FIXDIR}/fix" "${fmrihp}.ica" "${TrainingData}" "${FixThresh}" -h -1)
+	#-h is actually a subargument to -m, and will cause problems if specified without (or even not directly following) -m
+	# Update (11/8/2019): No longer true as of FIX 1.06.12, but since filtering of the CIFTI in MR-FIX occurs in
+	# functionhighpassandvariancenormalize it doesn't matter, so we leave the code unchanged so that we don't
+	# need to add a FIX version dependency to the script
+	# Extract features
+	fix_features_cmd=("${FSL_PyFIXDIR}/fix" -f "${fmrihp}.ica")
+	# Switch to PyFIX for classification and cleanup
+	# Classification
+	fix_classification_cmd=("${FSL_PyFIXDIR}/fix" -c "${fmrihp}.ica" "${TrainingData}" "${FixThresh}")
+	# Cleanup
+	fix_cleanup_cmd=("${FSL_PyFIXDIR}/fix" -a "${fmrihp}.ica/fix4melview_${model_name}_thr${FixThresh}.txt")
+	# fix_cmd=("${FSL_FIXDIR}/fix" "${concatfmrihp}.ica" "${TrainingData}" "${FixThresh}")
 fi
-log_Msg "fix_cmd: ${fix_cmd[*]}"
+log_Msg "fix_cmd: ${fix_features_cmd[*]}"
+log_Msg "fix_cmd: ${fix_classification_cmd[*]}"
+log_Msg "fix_cmd: ${fix_cleanup_cmd[*]}"
 ## MPH: The 'fix' script itself will continue to log to its own custom files
 ## Alert user to where those are
 log_Msg "Check ${fmrihp}.ica/fix/logMatlab.txt for log output from feature extraction"
 log_Msg "Check ${fmrihp}.ica/.fix_2b_predict.log for log output from component classification"
 log_Msg "Check ${fmrihp}.ica/.fix.log for log output from cleanup stage"
 "${fix_cmd[@]}"
+"${fix_features_cmd[@]}"
+"${fix_classification_cmd[@]}"
+"${fix_cleanup_cmd[@]}"
 return_code=$?
 if [ "${return_code}" -ne "0" ]; then
     log_Err_Abort "return_code from fix_cmd: ${return_code}"

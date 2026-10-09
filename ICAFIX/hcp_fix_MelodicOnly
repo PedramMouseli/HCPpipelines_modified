@@ -329,6 +329,9 @@ fi
 $FSLDIR/bin/imrm ${fmrihp}.ica/filtered_func_data.ica/alldat
 $FSLDIR/bin/imrm ${fmrihp}.ica/filtered_func_data.ica/concat_data
 
+#Plot the movement regressors
+python ${HCPPIPEDIR}/ICAFIX/PlotMovementRegressors.py Movement_Regressors.txt Movement_Regressors.png
+
 ## ---------------------------------------------------------------------------
 ## Housekeeping related to files expected for FIX
 ## ---------------------------------------------------------------------------

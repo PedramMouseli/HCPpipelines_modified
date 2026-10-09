@@ -81,20 +81,24 @@ QUEUE=""
 # OutfMRIName="rfMRI_REST"
 
 # For MR FIX, set fMRINames to empty
-fMRINames=""
-# the original MR FIX parameter for what to concatenate. List all single runs from one concatenated group separated with @.
-mrfixNames="rest"
-# the original MR FIX concatenated name (only one group)
-mrfixConcatName="rest_ICA"
-# @-separated list of runs to use for this new MSMAll run of MR FIX
-mrfixNamesToUse="rest"
-# FIX output concat name for this new MSMAll run of MR FIX
+# fMRINames=""
+fMRINames="rest"
+# # the original MR FIX parameter for what to concatenate. List all single runs from one concatenated group separated with @.
+# mrfixNames="rest"
+mrfixNames=""
+# # the original MR FIX concatenated name (only one group)
+# mrfixConcatName="rest_ICA"
+mrfixConcatName=""
+# # @-separated list of runs to use for this new MSMAll run of MR FIX
+# mrfixNamesToUse="rest"
+mrfixNamesToUse=""
+# # FIX output concat name for this new MSMAll run of MR FIX
 OutfMRIName="rest_ICA_MASMAll"
 
 #Use HighPass = 2000 for single-run FIX data, HighPass = 0 for MR FIX data
 HighPass="125"
 #Name to reflect high pass setting
-fMRIProcSTRING="_Atlas_hp0_clean"
+fMRIProcSTRING="_Atlas_hp125_clean"
 MSMAllTemplates="${HCPPIPEDIR}/global/templates/MSMAll"
 MyelinTargetFile="${MSMAllTemplates}/Q1-Q6_RelatedParcellation210.MyelinMap_BC_MSMAll_2_d41_WRN_DeDrift.32k_fs_LR.dscalar.nii"
 RegName="MSMAll_InitalReg"

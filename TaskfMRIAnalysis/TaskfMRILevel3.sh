@@ -46,6 +46,9 @@ usage() {
 	echo "--procstring=<ProcSTRING>"
 	echo "      e.g. like _hp2000_clean for ICA+FIX, not required for greyordinates as this can be in RegName, but required for volume"
 	echo "      append _lp<lpfilter> if --lowpassfilter was used in prior scripts"
+	echo
+	echo "--level2_cope_num=<Level2CopeNum>"
+	echo "      Number of the cope from the Level 2 analysis to be used in Level 3 (default is 1)"
 
      } >&2
     exit 7
@@ -86,6 +89,11 @@ RegName=`getopt1 "--regname" $@`
 ContrastListIn=`getopt1 "--contrastlist" $@`
 Parcellation=`getopt1 "--parcellation" $@`
 ProcSTRING=`getopt1 "--procstring" $@`
+Level2CopeNum=`getopt1 "--level2_cope_num" $@`
+
+if [ -z ${Level2CopeNum} ] ; then
+    Level2CopeNum=1
+fi
 
 ### M.P.Harms changes, Oct-Dec 2013  ###
 # Eliminate copying of Lev2 data -- use sym links for Volume analysis, and just convert CIFTI directly for Grayordinates.
@@ -171,7 +179,7 @@ echo $StartTime
 
 LevelTwoFEATDirSTRING=""
 for Subject in $SubjectList ; do 
-  AtlasFolder="${StudyFolder}/${Subject}/MNINonLinear"
+  AtlasFolder="${StudyFolder}/${Subject}/processed/MNINonLinear"
   ResultsFolder="${AtlasFolder}/Results"
   LevelTwoFEATDir="${ResultsFolder}/${LevelTwofMRIName}/${LevelTwofsfName}${TemporalFilterString}${SmoothingString}_level2${RegString}${ProcSTRING}${ParcellationString}.feat"
   if [ -d ${LevelTwoFEATDir} ] ; then
@@ -260,7 +268,7 @@ for Analysis in ${Analyses} ; do
       if [[ "$Analysis" = "GrayordinatesStats" || "$Analysis" = "ParcellatedStats" ]] ; then
 	      mkdir -p ${LevelThreeFEATDir}/${Analysis}/${i}/${j}
 	      ## Need to convert 4 files back to NIFTI for use in FLAMEO
-        for File in {mask,cope1,varcope1,tdof_t1} ; do
+        for File in {mask,cope${Level2CopeNum},varcope${Level2CopeNum},tdof_t${Level2CopeNum}} ; do
 	        cifti_in=${LevelTwoFEATDir}/${Analysis}/cope${i}.feat/${File}.${Extension}
 	        cifti_out=${LevelThreeFEATDir}/${Analysis}/${i}/${j}/${File}.nii.gz
 	        if [ ! -e ${cifti_in} ] ; then
@@ -305,10 +313,15 @@ for Analysis in ${Analyses} ; do
     DOFMERGE=""
     j=1
     while [ $j -le ${NumSubjects} ] ; do
+      if [ ! -f "${LevelThreeFEATDir}/${Analysis}/${i}/${j}/cope${Level2CopeNum}.nii.gz" ]; then
+        echo "ERROR: cope${Level2CopeNum}.nii.gz not found for subject $j, contrast $i"
+        echo "Missing file: ${LevelThreeFEATDir}/${Analysis}/${i}/${j}/cope${Level2CopeNum}.nii.gz"
+        exit 1
+      fi
       MASKMERGE="${MASKMERGE} ${LevelThreeFEATDir}/${Analysis}/${i}/${j}/mask.nii.gz"
-      COPEMERGE="${COPEMERGE} ${LevelThreeFEATDir}/${Analysis}/${i}/${j}/cope1.nii.gz"
-      VARCOPEMERGE="${VARCOPEMERGE} ${LevelThreeFEATDir}/${Analysis}/${i}/${j}/varcope1.nii.gz"
-      DOFMERGE="${DOFMERGE} ${LevelThreeFEATDir}/${Analysis}/${i}/${j}/tdof_t1.nii.gz"
+      COPEMERGE="${COPEMERGE} ${LevelThreeFEATDir}/${Analysis}/${i}/${j}/cope${Level2CopeNum}.nii.gz"
+      VARCOPEMERGE="${VARCOPEMERGE} ${LevelThreeFEATDir}/${Analysis}/${i}/${j}/varcope${Level2CopeNum}.nii.gz"
+      DOFMERGE="${DOFMERGE} ${LevelThreeFEATDir}/${Analysis}/${i}/${j}/tdof_t${Level2CopeNum}.nii.gz"
       j=$(($j+1))
     done
     suffix="_lev2data"  #Suffix to distinguish the merged lev2 files
@@ -329,7 +342,7 @@ for Analysis in ${Analyses} ; do
       rm -r ${LevelThreeFEATDir}/${Analysis}/cope${i}.feat
     fi
 
-    flameo --cope=${mergedcope} --vc=${mergedvarcope} --dvc=${mergedtdof} --mask=${mask} --ld=${LevelThreeFEATDir}/${Analysis}/cope${i}.feat --dm=${LevelThreeFEATDir}/design.mat --cs=${LevelThreeFEATDir}/design.grp --tc=${LevelThreeFEATDir}/design.con ${ExtraArgs} --runmode=flame1 --outputdof
+    flameo --cope=${mergedcope} --vc=${mergedvarcope} --dvc=${mergedtdof} --mask=${mask} --ld=${LevelThreeFEATDir}/${Analysis}/cope${i}.feat --dm=${LevelThreeFEATDir}/design.mat --cs=${LevelThreeFEATDir}/design.grp --tc=${LevelThreeFEATDir}/design.con ${ExtraArgs} --runmode=ols --outputdof
 
     # Cleanup
     if [ "${DeleteMergedFlameoInputs}" = "YES" ] ; then
@@ -345,33 +358,21 @@ for Analysis in ${Analyses} ; do
   ##  --- BEGIN POST-FLAMEO CONVERSIONS --- ##
   # Convert NIFTI file back to CIFTI; only relevant for Grayordinate analysis
   if [[ "$Analysis" = "GrayordinatesStats" || "$Analysis" = "ParcellatedStats" ]] ; then
-    cd ${LevelThreeFEATDir}/${Analysis}
-    Files=`ls | grep .nii.gz | cut -d "." -f 1`
-    cd $DIR
-    for File in $Files ; do
-      nifti_in=${LevelThreeFEATDir}/${Analysis}/${File}.nii.gz
-      cifti_template=${LevelTwoFEATDir}/${Analysis}/cope1.feat/pe1.${Extension}
-      cifti_out=${LevelThreeFEATDir}/${Analysis}/${File}.${Extension}
-      ${CARET7DIR}/wb_command -cifti-convert -from-nifti ${nifti_in} ${cifti_template} ${cifti_out} -reset-timepoints 1 1 
-      if [ "${DeleteIntermediates}" = "YES" ] ; then
-	      rm ${LevelThreeFEATDir}/${Analysis}/${File}.nii.gz
-      fi
-    done
     for i in ${ContrastList} ; do
       echo "COPE $i, Converting NIFTI->CIFTI, `date`"
       cd ${LevelThreeFEATDir}/${Analysis}/cope${i}.feat
-      Files=`ls | grep .nii.gz | cut -d "." -f 1`
+      Files=$(for f in *.nii.gz; do basename "$f" .nii.gz; done)
       cd $DIR
       for File in $Files ; do
 	      nifti_in=${LevelThreeFEATDir}/${Analysis}/cope${i}.feat/${File}.nii.gz
 	      cifti_template=${LevelTwoFEATDir}/${Analysis}/cope${i}.feat/pe1.${Extension}
 	      cifti_out=${LevelThreeFEATDir}/${Analysis}/cope${i}.feat/${File}.${Extension}
-        ${CARET7DIR}/wb_command -cifti-convert -from-nifti ${nifti_in} ${cifti_template} ${cifti_out} -reset-timepoints 1 1 
+        ${CARET7DIR}/wb_command -cifti-convert -from-nifti ${nifti_in} ${cifti_template} ${cifti_out} -reset-timepoints 1 1
 	      if [ "${DeleteIntermediates}" = "YES" ] ; then
           rm ${LevelThreeFEATDir}/${Analysis}/cope${i}.feat/${File}.nii.gz
 	      fi
       done
-    done        
+    done
   fi ##END of NIFTI->CIFTI conversion for Grayordinates analysis
   ##  --- END POST-FLAMEO CONVERSIONS --- ##
 

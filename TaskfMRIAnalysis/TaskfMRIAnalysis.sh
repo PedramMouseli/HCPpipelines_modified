@@ -213,7 +213,7 @@ fi
 ########################################## MAIN #########################################
 
 # Determine locations of necessary directories (using expected naming convention)
-AtlasFolder="${Path}/${Subject}/MNINonLinear"
+AtlasFolder="${Path}/${Subject}/processed/MNINonLinear"
 ResultsFolder="${AtlasFolder}/Results"
 ROIsFolder="${AtlasFolder}/ROIs"
 DownSampleFolder="${AtlasFolder}/fsaverage_LR${LowResMesh}k"
@@ -222,33 +222,33 @@ DownSampleFolder="${AtlasFolder}/fsaverage_LR${LowResMesh}k"
 # Run Level 1 analyses for each phase encoding direction (from command line arguments)
 log_Msg "RUN_LEVEL1: Running Level 1 Analysis for Both Phase Encoding Directions"
 i=1
-# Level 1 analysis names were delimited by '@' in command-line; change to space in for loop
-for LevelOnefMRIName in $( echo $LevelOnefMRINames | sed 's/@/ /g' ) ; do
-	log_Msg "RUN_LEVEL1: LevelOnefMRIName: ${LevelOnefMRIName}"
-	# Get corresponding fsf name from $LevelOnefsfNames list
-	LevelOnefsfName=`echo $LevelOnefsfNames | cut -d "@" -f $i`
-	log_Msg "RUN_LEVEL1: Issuing command: ${HCPPIPEDIR_tfMRIAnalysis}/TaskfMRILevel1.sh $Subject $ResultsFolder $ROIsFolder $DownSampleFolder $LevelOnefMRIName $LevelOnefsfName $LowResMesh $GrayordinatesResolution $OriginalSmoothingFWHM $Confound $FinalSmoothingFWHM $TemporalFilter $VolumeBasedProcessing $RegName $Parcellation $ParcellationFile $ProcSTRING $TemporalSmoothing"
-	${HCPPIPEDIR_tfMRIAnalysis}/TaskfMRILevel1.sh \
-	  $Subject \
-	  $ResultsFolder \
-	  $ROIsFolder \
-	  $DownSampleFolder \
-	  $LevelOnefMRIName \
-	  $LevelOnefsfName \
-	  $LowResMesh \
-	  $GrayordinatesResolution \
-	  $OriginalSmoothingFWHM \
-	  $Confound \
-	  $FinalSmoothingFWHM \
-	  $TemporalFilter \
-	  $VolumeBasedProcessing \
-	  $RegName \
-	  $Parcellation \
-	  $ParcellationFile \
-	  $ProcSTRING \
-	  $TemporalSmoothing
-	i=$(($i+1))
-done
+# # Level 1 analysis names were delimited by '@' in command-line; change to space in for loop
+# for LevelOnefMRIName in $( echo $LevelOnefMRINames | sed 's/@/ /g' ) ; do
+# 	log_Msg "RUN_LEVEL1: LevelOnefMRIName: ${LevelOnefMRIName}"
+# 	# Get corresponding fsf name from $LevelOnefsfNames list
+# 	LevelOnefsfName=`echo $LevelOnefsfNames | cut -d "@" -f $i`
+# 	log_Msg "RUN_LEVEL1: Issuing command: ${HCPPIPEDIR_tfMRIAnalysis}/TaskfMRILevel1.sh $Subject $ResultsFolder $ROIsFolder $DownSampleFolder $LevelOnefMRIName $LevelOnefsfName $LowResMesh $GrayordinatesResolution $OriginalSmoothingFWHM $Confound $FinalSmoothingFWHM $TemporalFilter $VolumeBasedProcessing $RegName $Parcellation $ParcellationFile $ProcSTRING $TemporalSmoothing"
+# 	${HCPPIPEDIR_tfMRIAnalysis}/TaskfMRILevel1.sh \
+# 	  $Subject \
+# 	  $ResultsFolder \
+# 	  $ROIsFolder \
+# 	  $DownSampleFolder \
+# 	  $LevelOnefMRIName \
+# 	  $LevelOnefsfName \
+# 	  $LowResMesh \
+# 	  $GrayordinatesResolution \
+# 	  $OriginalSmoothingFWHM \
+# 	  $Confound \
+# 	  $FinalSmoothingFWHM \
+# 	  $TemporalFilter \
+# 	  $VolumeBasedProcessing \
+# 	  $RegName \
+# 	  $Parcellation \
+# 	  $ParcellationFile \
+# 	  $ProcSTRING \
+# 	  $TemporalSmoothing
+# 	i=$(($i+1))
+# done
 
 if [ "$LevelTwofMRIName" != "NONE" ]
 then

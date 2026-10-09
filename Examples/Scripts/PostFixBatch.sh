@@ -130,8 +130,10 @@ for Subject in $Subjlist ; do
     fMRINames=()
     for task in "${TaskList_general[@]}" ; do
         # echo $task
-        if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
-        fMRINames+=("${task}_ICA")
+        # if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
+        if ls "${StudyFolder}/${Subject}/func/${Subject}_${task}"* >/dev/null 2>&1; then
+        # fMRINames+=("${task}_ICA")
+        fMRINames+=("${task}")
         echo "${task} added to the task list"
         fi
     done

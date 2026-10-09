@@ -162,6 +162,15 @@ echo " " >> $WD/log.txt
 
 ########################################## DO WORK ########################################## 
 
+if [ -z "${FREESURFER_HOME:-}" ]; then
+    export FREESURFER_HOME=/Applications/freesurfer/7.4.1
+fi
+if [ -f "${FREESURFER_HOME}/SetUpFreeSurfer.sh" ]; then
+    set +u
+    source "${FREESURFER_HOME}/SetUpFreeSurfer.sh" > /dev/null 2>&1
+    set -u
+fi
+
 case $DistortionCorrection in
 
     $SIEMENS_METHOD_OPT)
@@ -171,7 +180,8 @@ case $DistortionCorrection in
         # --------------------------------------
 
         ${FSLDIR}/bin/fslmaths ${MagnitudeInputName} -Tmean ${WD}/Magnitude
-        ${FSLDIR}/bin/bet ${WD}/Magnitude ${WD}/Magnitude_brain -f 0.35 -m #Brain extract the magnitude image
+        ${FREESURFER_HOME}/bin/mri_synthstrip -i ${WD}/Magnitude.nii.gz -o ${WD}/Magnitude_brain.nii.gz -m ${WD}/Magnitude_brain_mask.nii.gz
+        # ${FSLDIR}/bin/bet ${WD}/Magnitude ${WD}/Magnitude_brain -f 0.35 -m #Brain extract the magnitude image
         ${FSLDIR}/bin/imcp ${PhaseInputName} ${WD}/Phase
         ${FSLDIR}/bin/fsl_prepare_fieldmap SIEMENS ${WD}/Phase ${WD}/Magnitude_brain ${WD}/FieldMap ${DeltaTE}
 
@@ -186,7 +196,8 @@ case $DistortionCorrection in
         ${FSLDIR}/bin/fslsplit ${GEB0InputName}     # split image into vol0000=fieldmap and vol0001=magnitude
         ${FSLDIR}/bin/immv vol0000 ${WD}/FieldMapHertz
         ${FSLDIR}/bin/immv vol0001 ${WD}/Magnitude
-        ${FSLDIR}/bin/bet ${WD}/Magnitude ${WD}/Magnitude_brain -f 0.35 -m #Brain extract the magnitude image
+        ${FREESURFER_HOME}/bin/mri_synthstrip -i ${WD}/Magnitude.nii.gz -o ${WD}/Magnitude_brain.nii.gz -m ${WD}/Magnitude_brain_mask.nii.gz
+        # ${FSLDIR}/bin/bet ${WD}/Magnitude ${WD}/Magnitude_brain -f 0.35 -m #Brain extract the magnitude image
         ${FSLDIR}/bin/fsl_prepare_fieldmap GEHC_FIELDMAPHZ ${WD}/FieldMapHertz ${WD}/Magnitude_brain ${WD}/FieldMap ${DeltaTE}
 
         ;;
@@ -197,7 +208,8 @@ case $DistortionCorrection in
         # -------------------------------------------- 
         	
         ${FSLDIR}/bin/fslmaths ${MagnitudeInputName} -Tmean ${WD}/Magnitude #normally only one volume 
-        ${FSLDIR}/bin/bet ${WD}/Magnitude ${WD}/Magnitude_brain -f 0.35 -m #Brain extract the magnitude image
+        ${FREESURFER_HOME}/bin/mri_synthstrip -i ${WD}/Magnitude.nii.gz -o ${WD}/Magnitude_brain.nii.gz -m ${WD}/Magnitude_brain_mask.nii.gz
+        # ${FSLDIR}/bin/bet ${WD}/Magnitude ${WD}/Magnitude_brain -f 0.35 -m #Brain extract the magnitude image
         ${FSLDIR}/bin/imcp ${PhaseInputName} ${WD}/FieldMapHertz
         ${FSLDIR}/bin/fsl_prepare_fieldmap GEHC_FIELDMAPHZ ${WD}/FieldMapHertz ${WD}/Magnitude_brain ${WD}/FieldMap ${DeltaTE}
 
@@ -210,10 +222,8 @@ case $DistortionCorrection in
 
         ${FSLDIR}/bin/fslmaths ${MagnitudeInputName} -Tmean ${WD}/Magnitude
         # Brain extract the magnitude image
-        ${FSLDIR}/bin/bet ${WD}/Magnitude ${WD}/Magnitude_brain -f 0.35 -m
-        ${FSLDIR}/bin/fslmaths ${WD}/Magnitude_brain -ero ${WD}/Magnitude_brain_ero
-        rm ${WD}/Magnitude_brain.nii.gz
-        mv ${WD}/Magnitude_brain_ero.nii.gz ${WD}/Magnitude_brain.nii.gz
+        ${FREESURFER_HOME}/bin/mri_synthstrip -i ${WD}/Magnitude.nii.gz -o ${WD}/Magnitude_brain.nii.gz -m ${WD}/Magnitude_brain_mask.nii.gz
+        # ${FSLDIR}/bin/bet ${WD}/Magnitude ${WD}/Magnitude_brain -f 0.35 -m
 
         # Take the absolute value of the magnitude data (some images used negative values for the coding)
         ${FSLDIR}/bin/fslmaths ${WD}/Magnitude_brain.nii.gz -abs ${WD}/Magnitude_brain.nii.gz
@@ -246,6 +256,9 @@ case $DistortionCorrection in
         log_Err "Unable to create FSL-suitable readout distortion correction field map"
         log_Err_Abort "Unrecognized distortion correction method: ${DistortionCorrection}"
 esac
+
+# export FREESURFER_HOME=/Applications/freesurfer/6.0.0
+# source ${FREESURFER_HOME}/SetUpFreeSurfer.sh > /dev/null 2>&1
 
 log_Msg "DONE: fsl_prepare_fieldmap.sh"
 

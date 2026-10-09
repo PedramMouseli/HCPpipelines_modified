@@ -119,8 +119,7 @@ fi
 verbose_echo " --> Linear then non-linear registration to MNI"
 
 python "${HCPPIPEDIR}/ANTs/antsReg.py" "${RegImage}.nii.gz" "$Reference" "${WD}/xfms/ants_"
-# Convert ANTs warp to FSL
-c3d_affine_tool -ref "$Reference" -src "${RegImage}.nii.gz" -itk "${WD}/xfms/ants_0GenericAffine.mat" -ras2fsl -o ${WD}/xfms/acpc2MNILinear.mat
+python "${HCPPIPEDIR}/ANTs/itk2fsl.py" --ref "$Reference" --src "${RegImage}.nii.gz" --itk "${WD}/xfms/ants_0GenericAffine.mat" --out "${WD}/xfms/acpc2MNILinear.mat"
 $CARET7DIR/wb_command -convert-warpfield -from-itk "${WD}/xfms/ants_1Warp.nii.gz" -to-fnirt "${WD}/xfms/ants_fnirt.nii.gz" "$Reference"
 ${FSLDIR}/bin/convertwarp --relout --ref="$Reference2mm" --premat=${WD}/xfms/acpc2MNILinear.mat --warp1="${WD}/xfms/ants_fnirt.nii.gz" --out=${OutputTransform}
 

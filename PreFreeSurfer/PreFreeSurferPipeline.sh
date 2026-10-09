@@ -532,7 +532,9 @@ if [ "$CustomBrain" = "NONE" ] ; then
         --ref=${TXwTemplate} \
         --out=${TXwFolder}/${TXwImage}_acpc \
         --omat=${TXwFolder}/xfms/acpc.mat \
-        --brainsize=${BrainSize}
+        --brainsize=${BrainSize} \
+        --altimageidentifier=${AltImageIdentifier} \
+        --regfrom=${RegFrom}
 
       # Brain Extraction(FNIRT-based Masking
       log_Msg "Performing Brain Extraction using FNIRT-based Masking"
@@ -786,6 +788,7 @@ ${RUN} ${HCPPIPEDIR_PreFS}/AtlasRegistrationToMNI152_FLIRTandFNIRT.sh \
   --ot2=${AtlasSpaceFolder}/${T2wImage} \
   --ot2rest=${AtlasSpaceFolder}/${T2wImage}_restore \
   --ot2restbrain=${AtlasSpaceFolder}/${T2wImage}_restore_brain \
-  --fnirtconfig=${FNIRTConfig}
+  --fnirtconfig=${FNIRTConfig} \
+  --regfrom=${RegFrom}
 
 log_Msg "Completed!"

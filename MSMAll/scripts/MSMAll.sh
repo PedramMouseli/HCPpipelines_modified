@@ -87,7 +87,7 @@ T1wFolder="${StudyFolder}/${Subject}/processed/T1w"
 DownSampleT1wFolder="${T1wFolder}/fsaverage_LR${LowResMesh}k"
 NativeT1wFolder="${T1wFolder}/Native"
 
-if [[ $(echo -n "${Method}" | grep "WR") ]] ; then
+if [[ "${Method}" == *WR* ]] ; then
 	LowICAdims=$(echo "${RegressionParams}" | sed 's/[_@]/ /g')
 fi
 
@@ -220,7 +220,7 @@ while [ ${i} -le ${NumIterations} ] ; do
 		mkdir ${NativeFolder}/${RegName}
 	fi
 
-	if [[ $(echo -n ${Modalities} | grep "C") || $(echo -n ${Modalities} | grep "T") ]] ; then
+	if [[ ${Modalities} == *C* || ${Modalities} == *T* ]] ; then
 		for Hemisphere in L R ; do
 			${Caret7_Command} -surface-sphere-project-unproject ${DownSampleFolder}/${Subject}.${Hemisphere}.sphere.${LowResMesh}k_fs_LR.surf.gii ${NativeFolder}/${Subject}.${Hemisphere}.sphere.${InPCARegString}.native.surf.gii ${NativeFolder}/${Subject}.${Hemisphere}.sphere.${InRegName}.native.surf.gii ${DownSampleFolder}/${Subject}.${Hemisphere}.sphere.${OutPCARegString}${InRegName}.${LowResMesh}k_fs_LR.surf.gii
 		done
@@ -232,7 +232,7 @@ while [ ${i} -le ${NumIterations} ] ; do
 		fi
 	fi
 
-	if [[ $(echo -n ${Modalities} | grep "C") ]] ; then
+	if [[ ${Modalities} == *C* ]] ; then
 		log_Msg "Modalities includes C"
 		log_Msg "Resample the atlas instead of the timeseries"
 		${Caret7_Command} -cifti-resample ${DownSampleFolder}/${Subject}.atlas_RSNs_d${ICAdim}.${LowResMesh}k_fs_LR.dscalar.nii COLUMN ${DownSampleFolder}/${Subject}.atlas_RSNs_d${ICAdim}.${LowResMesh}k_fs_LR.dscalar.nii COLUMN ADAP_BARY_AREA ENCLOSING_VOXEL ${DownSampleFolder}/${Subject}.atlas_RSNs_d${ICAdim}_${InRegName}.${LowResMesh}k_fs_LR.dscalar.nii -surface-postdilate 40 -left-spheres ${DownSampleFolder}/${Subject}.L.sphere.${LowResMesh}k_fs_LR.surf.gii ${DownSampleFolder}/${Subject}.L.sphere.${OutPCARegString}${InRegName}.${LowResMesh}k_fs_LR.surf.gii -left-area-surfs ${DownSampleFolder}/${Subject}.L.midthickness.${LowResMesh}k_fs_LR.surf.gii ${DownSampleFolder}/${Subject}.L.midthickness.${LowResMesh}k_fs_LR.surf.gii -right-spheres ${DownSampleFolder}/${Subject}.R.sphere.${LowResMesh}k_fs_LR.surf.gii ${DownSampleFolder}/${Subject}.R.sphere.${OutPCARegString}${InRegName}.${LowResMesh}k_fs_LR.surf.gii -right-area-surfs ${DownSampleFolder}/${Subject}.R.midthickness.${LowResMesh}k_fs_LR.surf.gii ${DownSampleFolder}/${Subject}.R.midthickness.${LowResMesh}k_fs_LR.surf.gii
@@ -244,7 +244,7 @@ while [ ${i} -le ${NumIterations} ] ; do
 		outputweights="${DownSampleFolder}/${Subject}.individual_RSNs_d${ICAdim}_weights.${LowResMesh}k_fs_LR.dscalar.nii"
 		Params="${NativeFolder}/${RegName}/Params.txt"
 		touch ${Params}
-		if [[ $(echo -n ${Method} | grep "WR") ]] ; then
+		if [[ ${Method} == *WR* ]] ; then
 			Distortion="${normalized_midthickness_va_file}"
 			echo ${Distortion} > ${Params}
 			LeftSurface="${DownSampleT1wFolder}/${Subject}.L.midthickness${SurfRegSTRING}.${LowResMesh}k_fs_LR.surf.gii"
@@ -312,7 +312,7 @@ while [ ${i} -le ${NumIterations} ] ; do
 
 	fi
 
-	if [[ $(echo -n ${Modalities} | grep "A") ]] ; then
+	if [[ ${Modalities} == *A* ]] ; then
 		log_Msg "Modalities includes A"
 		# Myelin Map BC using 32k
 		"$HCPPIPEDIR"/global/scripts/MyelinMap_BC.sh \
@@ -330,7 +330,7 @@ while [ ${i} -le ${NumIterations} ] ; do
 		
 	fi
 
-	if [[ $(echo -n ${Modalities} | grep "T") ]] ; then
+	if [[ ${Modalities} == *T* ]] ; then
 		# Resample the atlas instead of the timeseries
 		log_Msg "Modalities includes T"
 		log_Msg "Resample the atlas instead of the timeseries"
@@ -348,7 +348,7 @@ while [ ${i} -le ${NumIterations} ] ; do
 		outputweights="${DownSampleFolder}/${Subject}.individual_Topography_weights.${LowResMesh}k_fs_LR.dscalar.nii"
 		Params="${NativeFolder}/${RegName}/Params.txt"
 		touch ${Params}
-		if [[ $(echo -n ${Method} | grep "WR") ]] ; then
+		if [[ ${Method} == *WR* ]] ; then
 			Distortion="${normalized_midthickness_va_file}"
 			echo ${Distortion} > ${Params}
 		fi
@@ -423,7 +423,7 @@ while [ ${i} -le ${NumIterations} ] ; do
 		log_Msg "RegHemi - Structure:  ${Structure}"
 		log_Msg "RegHemi - Modalities: ${Modalities}"
 
-		if [[ $(echo -n ${Modalities} | grep "C") ]] ; then
+		if [[ ${Modalities} == *C* ]] ; then
 			log_Msg "RegHemi - Modalities contains C"
 
 			${Caret7_Command} -metric-resample ${DownSampleFolder}/${Subject}.${Hemisphere}.individual_RSNs_d${ICAdim}_${InRegName}.${LowResMesh}k_fs_LR.func.gii ${DownSampleFolder}/${Subject}.${Hemisphere}.sphere.${LowResMesh}k_fs_LR.surf.gii ${NativeFolder}/${Subject}.${Hemisphere}.sphere.${InRegName}.native.surf.gii ADAP_BARY_AREA ${NativeFolder}/${Subject}.${Hemisphere}.individual_RSNs_d${ICAdim}_${InRegName}.native.func.gii -area-surfs ${DownSampleFolder}/${Subject}.${Hemisphere}.midthickness.${LowResMesh}k_fs_LR.surf.gii ${NativeFolder}/${Subject}.${Hemisphere}.midthickness.native.surf.gii -current-roi ${DownSampleFolder}/${Subject}.${Hemisphere}.atlasroi.${LowResMesh}k_fs_LR.shape.gii -valid-roi-out ${NativeFolder}/${Subject}.${Hemisphere}.${InRegName}_roi.native.shape.gii
@@ -434,14 +434,14 @@ while [ ${i} -le ${NumIterations} ] ; do
 
 		fi
 
-		if [[ $(echo -n ${Modalities} | grep "A") ]] ; then
+		if [[ ${Modalities} == *A* ]] ; then
 			log_Msg "RegHemi - Modalities contains A"
 
 			${Caret7_Command} -metric-resample ${DownSampleFolder}/${Subject}.${Hemisphere}.BiasField_${InRegName}.${LowResMesh}k_fs_LR.func.gii ${DownSampleFolder}/${Subject}.${Hemisphere}.sphere.${LowResMesh}k_fs_LR.surf.gii ${NativeFolder}/${Subject}.${Hemisphere}.sphere.${InRegName}.native.surf.gii ADAP_BARY_AREA ${NativeFolder}/${Subject}.${Hemisphere}.BiasField_${InRegName}.native.func.gii -area-surfs ${DownSampleFolder}/${Subject}.${Hemisphere}.midthickness.${LowResMesh}k_fs_LR.surf.gii ${NativeFolder}/${Subject}.${Hemisphere}.midthickness.native.surf.gii -current-roi ${DownSampleFolder}/${Subject}.${Hemisphere}.atlasroi.${LowResMesh}k_fs_LR.shape.gii -valid-roi-out ${NativeFolder}/${Subject}.${Hemisphere}.${InRegName}_roi.native.shape.gii
 
 		fi
 
-		if [[ $(echo -n ${Modalities} | grep "T") ]] ; then
+		if [[ ${Modalities} == *T* ]] ; then
 			log_Msg "RegHemi - Modalities contains T"
 
 			${Caret7_Command} -metric-resample ${DownSampleFolder}/${Subject}.${Hemisphere}.individual_Topography_${InRegName}.${LowResMesh}k_fs_LR.func.gii ${DownSampleFolder}/${Subject}.${Hemisphere}.sphere.${LowResMesh}k_fs_LR.surf.gii ${NativeFolder}/${Subject}.${Hemisphere}.sphere.${InRegName}.native.surf.gii ADAP_BARY_AREA ${NativeFolder}/${Subject}.${Hemisphere}.individual_Topography_${InRegName}.native.func.gii -area-surfs ${DownSampleFolder}/${Subject}.${Hemisphere}.midthickness.${LowResMesh}k_fs_LR.surf.gii ${NativeFolder}/${Subject}.${Hemisphere}.midthickness.native.surf.gii -current-roi ${DownSampleFolder}/${Subject}.${Hemisphere}.atlasroi.${LowResMesh}k_fs_LR.shape.gii -valid-roi-out ${NativeFolder}/${Subject}.${Hemisphere}.${InRegName}_roi.native.shape.gii
@@ -761,7 +761,7 @@ outputspatialmaps="${DownSampleFolder}/${Subject}.individual_RSNs_d${ICAdim}_${R
 outputweights="NONE"
 Params="${NativeFolder}/${RegName}/Params.txt"
 touch ${Params}
-if [[ $(echo -n ${Method} | grep "WR") ]] ; then
+if [[ ${Method} == *WR* ]] ; then
 	Distortion="${normalized_midthickness_va_file}"
 	echo ${Distortion} > ${Params}
 	LeftSurface="${DownSampleT1wFolder}/${Subject}.L.midthickness_${RegName}.${LowResMesh}k_fs_LR.surf.gii"
@@ -837,7 +837,7 @@ outputspatialmaps="${DownSampleFolder}/${Subject}.individual_Topography_${RegNam
 outputweights="NONE"
 Params="${NativeFolder}/${RegName}/Params.txt"
 touch ${Params}
-if [[ $(echo -n ${Method} | grep "WR") ]] ; then
+if [[ ${Method} == *WR* ]] ; then
 	Distortion="${normalized_midthickness_va_file}"
 	echo ${Distortion} > ${Params}
 fi

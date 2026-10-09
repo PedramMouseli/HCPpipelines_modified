@@ -159,7 +159,7 @@ main() {
 
 	runs="run-1 run-2 run-3 run-4"
 
-	# set temporal highpass full-width (2*sigma) to use, in seconds, cannot be 0 for single-run FIX
+	# set temporal highpass and lowpass full-width (2*sigma) to use, in seconds, cannot be 0 for single-run FIX
 	# MR FIX also supports 0 for a linear detrend, or "pdX" for a polynomial detrend of order X
 	# e.g., bandpass=pd1 is linear detrend (functionally equivalent to bandpass=0)
 	# bandpass=pd2 is a quadratic detrend
@@ -168,7 +168,7 @@ main() {
 
 	# set whether or not to regress motion parameters (24 regressors)
 	# out of the data as part of FIX (TRUE or FALSE)
-	domot=FALSE
+	domot=True
 
 	# set FIX threshold (controls sensitivity/specificity tradeoff)
 	FixThreshold=10
@@ -198,34 +198,42 @@ main() {
 	for Subject in ${Subjlist}; do
 		echo ${Subject}
 
-		ResultsFolder="${StudyFolder}/${Subject}/processed/MNIN-Linear/Results"
+		ResultsFolder="${StudyFolder}/${Subject}/processed/MNINonLinear/Results"
 
 		## find the task list
-		ConcatNames=()
-		fMRINames=()
+		ConcatNames=""
+		fMRINamesMulti=""
+		fMRINamesSingle=()
         for task in ${TaskList}; do
-		  if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
-		    ConcatNames+="${task}_ICA@"
-		    echo "${task} added to the task list"
-
-		    if [ $task == "rest" ]; then
-		      fMRINames+="${task}"
+		  if ls "${StudyFolder}/${Subject}/func/${Subject}_${task}"* >/dev/null 2>&1; then
+		    task_runs=()
+		    if [ "$task" = "rest" ]; then
+		      task_runs+=("${task}")
 		    fi
-
 		    for run in ${runs} ; do
 		      if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_${run}"* >/dev/null 2>&1; then
-		        fMRINames+="${task}_${run}@"
+		        task_runs+=("${task}_${run}")
 		      fi
 		    done
-		    fMRINames+="%"
+		    if [ ${#task_runs[@]} -ge 2 ]; then
+		      ConcatNames+="${task}_ICA@"
+		      task_run_string=$(IFS=@; echo "${task_runs[*]}")
+		      fMRINamesMulti+="${task_run_string}%"
+		      echo "${task} set for multi-run concatenation (${task_run_string})"
+		    elif [ ${#task_runs[@]} -eq 1 ]; then
+		      fMRINamesSingle+=("${task_runs[0]}")
+		      echo "${task_runs[0]} added to single-run list"
+		    fi
 		  fi
 		done
+		fMRINames="${fMRINamesMulti}"
 
 		if [ -z "${ConcatNames}" ]; then
 			# single-run FIX
 			fMRINamesFlat=$(echo ${fMRINames} | sed 's/[@%]/ /g')
 
-			for fMRIName in ${fMRINamesFlat}; do
+			# run any single-run entries collected (no concatenation)
+			for fMRIName in ${fMRINamesFlat} ${fMRINamesSingle[@]}; do
 				echo "  ${fMRIName}"
 
 				InputFile="${ResultsFolder}/${fMRIName}/${fMRIName}"

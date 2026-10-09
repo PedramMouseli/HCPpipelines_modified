@@ -92,7 +92,11 @@ echo " " >> $WD/log.txt
 
 # Crop the FOV
 verbose_echo " --> Croping the FOV"
-${FSLDIR}/bin/robustfov -i "$Input" -m "$WD"/roi2full.mat -r "$WD"/robustroi.nii.gz $BrainSizeOpt
+if [ $Modality = T1w ] && [ "$RegFrom" = "alt" ] ; then
+    ${FSLDIR}/bin/robustfov -i "${Input}_${AltImageIdentifier}.nii.gz" -m "$WD"/roi2full.mat -r "$WD"/robustroi.nii.gz $BrainSizeOpt
+else
+    ${FSLDIR}/bin/robustfov -i "$Input" -m "$WD"/roi2full.mat -r "$WD"/robustroi.nii.gz $BrainSizeOpt
+fi
 
 # Invert the matrix (to get full FOV to ROI)
 verbose_echo " --> Inverting the matrix"

@@ -4,7 +4,7 @@ This is a modified version of the [HCP pipelines][HCPpipelines]. Some of the cha
 * The brain extraction script is modified to use [SynthStrip][synthstrip] (from FreeSurfer version >= 7.3.0) for a better brain extraction and registration to the standard space.
 * An additional T1w image (INV2 from the MP2RAGE sequence) which has more clear edges is used for calculating the linear and non-linear transformations to the standard space.
 * FSL FLIRT and FNIRT were replaced with [ANTs][ants] for the linear and non-linear registration. 
-* ANTs transformations converted to the FSL format using [c3d_affine_tool][c3d_affine] and [Workbench][wb].
+* ANTs transformations converted to the FSL format using a native Python script (itk2fsl.py) and [Workbench][wb], removing dependency on c3d_affine_tool for native Apple Silicon (ARM64) execution.
 * Option added for excluding volumes from the beginning and end of the fMRI time series in the fMRI volume processing step.
 * Option added to PreFreeSurfer step for switching between the original and alternative T1w image for registration.
 * The older version of ICAFIX is replaced with [PyFIX][pyfix].
@@ -12,6 +12,9 @@ This is a modified version of the [HCP pipelines][HCPpipelines]. Some of the cha
 * Added the IcaFixMelodicOnlyProcessingBatch.sh script to only run FSL MELODIC when we want to train our own model and use it for ICAFIX classification and cleaning.
 * Temporal filtering is done in python using [Scipy][scipy] and [Nibabel][nibabel] instead of fslmaths.
 * User can input the tasks which will be bandpass filtered in the IcaFixProcessingBatch.sh script. The rest of the tasks will be highpass filtered by default (or no filtering if highpass<0).
+* Brain extraction for field map magnitude images and functional Scout scans updated to use [SynthStrip][synthstrip] for cleaner skull-stripping.
+* Improved EPI distortion correction and registration (epi_reg_dof) with brain-extracted Scout pre-alignment, regularized field map shift calculations to eliminate phase boundary singularities, and proper BBR refinement matrix propagation.
+* Added non-negative clamping after spline interpolation to eliminate negative intensity ringing in resampled fMRI images.
 
 # HCP Pipelines 
 

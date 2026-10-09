@@ -217,7 +217,7 @@ done
 # Assemble list of input filenames that need to be checked
 Filenames="";
 # Need template fsf file
-Filenames="${Filenames} ${ResultsFolder}/${LevelTwofMRIName}/${LevelTwofsfName}_hp200_s4_level2.fsf"
+Filenames="${Filenames} ${ResultsFolder}/${LevelTwofMRIName}/${LevelTwofsfName}_level2.fsf"
 
 errMsg="";
 # Check files in Level1 Analysis folders
@@ -288,7 +288,12 @@ else
 fi
 
 # Edit template.fsf and place it in LevelTwoFEATDir
-cat ${ResultsFolder}/${LevelTwofMRIName}/${LevelTwofsfName}_hp200_s4_level2.fsf | sed s/_hp200_s4/${TemporalFilterString}${SmoothingString}${RegString}${ProcSTRING}${LowPassSTRING}${ParcellationString}/g > ${LevelTwoFEATDir}/design.fsf
+# cat ${ResultsFolder}/${LevelTwofMRIName}/${LevelTwofsfName}_hp200_s4_level2.fsf | sed s/_hp200_s4/${TemporalFilterString}${SmoothingString}${RegString}${ProcSTRING}${LowPassSTRING}${ParcellationString}/g > ${LevelTwoFEATDir}/design.fsf
+cat ${ResultsFolder}/${LevelTwofMRIName}/${LevelTwofsfName}_level2_w_runs.fsf \
+| sed -e "s/output_str/${TemporalFilterString}${SmoothingString}${RegString}${ProcSTRING}${LowPassSTRING}${ParcellationString}/g" \
+      -e "s/featdir_str/${TemporalFilterString}${SmoothingString}_level1${RegString}${ProcSTRING}${LowPassSTRING}${ParcellationString}/g" \
+> ${LevelTwoFEATDir}/design.fsf
+
 
 # Make additional design files required by flameo
 log_Msg "Make design files"

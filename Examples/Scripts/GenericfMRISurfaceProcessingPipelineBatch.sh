@@ -129,7 +129,8 @@ for Subject in $Subjlist ; do
     # Finding available task data
     TaskList=()
     for task in "${TaskList_general[@]}" ; do
-      if [ -e "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_bold.nii.gz" ]; then
+    #   if [ -e "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_bold.nii.gz" ]; then
+        if [ -e "${StudyFolder}/${Subject}/func/${Subject}_${task}_run-1_bold.nii.gz" ]; then
         if [ ${#TASK_SPECS[@]} -gt 0 ]; then
             if lookup_task_in_specs "$task" ; then
                 TaskList+=($task)

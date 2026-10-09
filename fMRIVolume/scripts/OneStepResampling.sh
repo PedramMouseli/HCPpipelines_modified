@@ -316,7 +316,9 @@ if [ ${fMRIReferencePath} = "NONE" ] ; then
   # Combine transformations: gradient non-linearity distortion + fMRI_dc to standard
   ${FSLDIR}/bin/convertwarp --relout --rel --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --warp1=${GradientDistortionField} --warp2=${OutputTransform} --out=${WD}/Scout_gdc_MNI_warp.nii.gz
   ${FSLDIR}/bin/applywarp --rel --interp=spline --in=${ScoutInput} -w ${WD}/Scout_gdc_MNI_warp.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} -o ${ScoutOutput}
+  ${FSLDIR}/bin/fslmaths ${ScoutOutput} -thr 0 ${ScoutOutput}
 fi
+${FSLDIR}/bin/fslmaths ${OutputfMRI} -thr 0 ${OutputfMRI}
 
 # Create trilinear interpolated version of Jacobian (T1w space, fMRI resolution)
 #${FSLDIR}/bin/applywarp --rel --interp=trilinear -i ${JacobianIn} -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} -w ${StructuralToStandard} -o ${JacobianOut}

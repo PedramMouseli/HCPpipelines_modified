@@ -81,19 +81,19 @@ get_options() {
 	done
 
 	# check required parameters
-	if [ -z ${StudyFolder} ]
+	if [ -z "${StudyFolder}" ]
 	then
 		echo "ERROR: StudyFolder not specified"
 		exit 1
 	fi
 
-	if [ -z ${Subjlist} ]
+	if [ -z "${Subjlist}" ]
 	then
 		echo "ERROR: Subjlist not specified"
 		exit 1
 	fi
 
-	if [ -z ${EnvironmentScript} ]
+	if [ -z "${EnvironmentScript}" ]
 	then
 		echo "ERROR: EnvironmentScript not specified"
 		exit 1
@@ -101,13 +101,13 @@ get_options() {
 
 	# MPH: Allow FixDir to be empty at this point, so users can take advantage of the FSL_FIXDIR setting
 	# already in their EnvironmentScript
-#    if [ -z ${FixDir} ]
+#    if [ -z "${FixDir}" ]
 #    then
 #        echo "ERROR: FixDir not specified"
 #        exit 1
 #    fi
 
-	if [ -z ${RunLocal} ]
+	if [ -z "${RunLocal}" ]
 	then
 		echo "ERROR: RunLocal is an empty string"
 		exit 1
@@ -118,7 +118,7 @@ get_options() {
 	echo "   StudyFolder: ${StudyFolder}"
 	echo "   Subjlist: ${Subjlist}"
 	echo "   EnvironmentScript: ${EnvironmentScript}"
-	if [ ! -z ${FixDir} ]; then
+	if [ -n "${FixDir}" ]; then
 		echo "   FixDir: ${FixDir}"
 	fi
 	echo "   RunLocal: ${RunLocal}"
@@ -142,7 +142,7 @@ main() {
 
 	# MPH: If DEFAULT_FIXDIR is set, or --FixDir argument was used, then use that to
 	# override the setting of FSL_FIXDIR in EnvironmentScript
-	if [ ! -z ${FixDir} ]; then
+	if [ -n "${FixDir}" ]; then
 		export FSL_FIXDIR=${FixDir}
 	fi
 
@@ -171,10 +171,12 @@ main() {
 	domot=TRUE
 
 	# set the training data used in multi-run fix mode
-	MRTrainingData=TMDmodel_PyFIX.pyfix_model
+	# MRTrainingData=TMDmodel_PyFIX.pyfix_model
+	MRTrainingData=/Volumes/SPRINT/Restingstate_Amygdala_Analysis_copy/Discovery_Cohort_Raw/BIDS_format_2/derivatives/FIX/SPRINTmodel_Stanford.pyfix_model
 
 	# set the training data used in single-run fix mode
-	SRTrainingData=HCP_hp2000.RData
+	# SRTrainingData=HCP_hp2000.RData
+	SRTrainingData=/Volumes/SPRINT/Restingstate_Amygdala_Analysis_copy/Discovery_Cohort_Raw/BIDS_format_2/derivatives/FIX/SPRINTmodel_Stanford.pyfix_model
 
 	# set FIX threshold (controls sensitivity/specificity tradeoff)
 	FixThreshold=10
@@ -207,31 +209,66 @@ main() {
 		ResultsFolder="${StudyFolder}/${Subject}/processed/MNINonLinear/Results"
 
 		## find the task list
-		ConcatNames=()
-		fMRINames=()
+		ConcatNames=""
+		fMRINamesMulti=""
+		fMRINamesSingle=()
         for task in ${TaskList}; do
-		  if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
-		    ConcatNames+="${task}_ICA@"
-		    echo "${task} added to the task list"
-
-		    if [ $task == "rest" ]; then
-		      fMRINames+="${task}"
-		    fi
-
+		  task_runs=()
+		  if [ "$task" = "rest" ]; then
+		    # Prefer numbered runs if present
+		    numbered_runs=()
 		    for run in ${runs} ; do
-		      if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_${run}"* >/dev/null 2>&1; then
-		        fMRINames+="${task}_${run}@"
+		      if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_${run}"* >/dev/null 2>&1 || \
+		         ls "${StudyFolder}/${Subject}/func/${Subject}_${task}_${run}"* >/dev/null 2>&1; then
+		        numbered_runs+=("${task}_${run}")
 		      fi
 		    done
-		    fMRINames+="%"
+		    if [ ${#numbered_runs[@]} -gt 0 ]; then
+		      task_runs=("${numbered_runs[@]}")
+		    else
+		      # Fall back to unnumbered 'rest' if present (either naming style)
+		      if ls "${StudyFolder}/${Subject}/func/${Subject}_${task}"* >/dev/null 2>&1 || \
+		         ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}"* >/dev/null 2>&1; then
+		        task_runs+=("${task}")
+		      fi
+		    fi
+		  else
+		    # Non-rest tasks: collect numbered runs (accept both naming styles)
+		    for run in ${runs} ; do
+		      if ls "${StudyFolder}/${Subject}/func/${Subject}_task-${task}_${run}"* >/dev/null 2>&1 || \
+		         ls "${StudyFolder}/${Subject}/func/${Subject}_${task}_${run}"* >/dev/null 2>&1; then
+		        task_runs+=("${task}_${run}")
+		      fi
+		    done
+		  fi
+		  if [ ${#task_runs[@]} -ge 2 ]; then
+		    ConcatNames+="${task}_ICA@"
+		    task_run_string=$(IFS=@; echo "${task_runs[*]}")
+		    fMRINamesMulti+="${task_run_string}%"
+		    echo "${task} set for multi-run concatenation (${task_run_string})"
+		  elif [ ${#task_runs[@]} -eq 1 ]; then
+		    single_run_name="${task_runs[0]}"
+		    preferred_name="${task}"
+		    # Prefer base task name (no run suffix) for single-run if such results directory exists
+		    if [ -d "${ResultsFolder}/${preferred_name}" ]; then
+		      fMRINamesSingle+=("${preferred_name}")
+		      echo "${preferred_name} added to single-run list"
+		    else
+		      fMRINamesSingle+=("${single_run_name}")
+		      echo "${single_run_name} added to single-run list"
+		    fi
+		  else
+		    echo "No runs found for task ${task}, skipping."
 		  fi
 		done
+		fMRINames="${fMRINamesMulti}"
 
 		if [ -z "${ConcatNames}" ]; then
 			# single-run FIX
 			fMRINamesFlat=$(echo ${fMRINames} | sed 's/[@%]/ /g')
 
-			for fMRIName in ${fMRINamesFlat}; do
+			# run any single-run entries collected (no concatenation)
+			for fMRIName in ${fMRINamesFlat} ${fMRINamesSingle[@]}; do
 				echo "  ${fMRIName}"
 
 				InputFile="${ResultsFolder}/${fMRIName}/${fMRIName}"
